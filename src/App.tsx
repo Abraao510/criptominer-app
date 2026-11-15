@@ -241,9 +241,9 @@ export default function App() {
         setEngineActive(nextActive)
         if (nextActive) {
           await fetchWallets(true)
-          setNotice({ type: 'info', message: 'A API não expõe POST /start. O monitoramento foi iniciado localmente usando GET /found, que está respondendo 200.' })
+          setNotice({ type: 'success', message: 'Monitoramento ativo. A leitura GET /found respondeu 200 e o painel continuará consultando a API a cada 10 segundos.' })
         } else {
-          setNotice({ type: 'info', message: 'A API não expõe POST /stop. O monitoramento local foi pausado e nenhuma nova consulta será feita.' })
+          setNotice({ type: 'success', message: 'Monitoramento pausado. Nenhuma nova leitura automática será feita até você iniciar novamente.' })
         }
       } else {
         setNotice({ type: 'error', message: message || 'Não foi possível alterar o estado do motor.' })
