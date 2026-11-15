@@ -37,6 +37,7 @@ app.post('/api/set_network', proxyRequest)
 app.post('/api/start', proxyRequest)
 app.post('/api/stop', proxyRequest)
 app.get('/_app/health', (_req, res) => res.status(200).json({ ok: true }))
+app.get('/@vite/client', (_req, res) => res.status(204).end())
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, 'dist')
