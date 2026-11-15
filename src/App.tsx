@@ -235,7 +235,19 @@ export default function App() {
       setNotice({ type: 'success', message: nextActive ? 'Motor iniciado. O painel será atualizado a cada 10 segundos.' : 'Motor parado. A atualização automática foi pausada.' })
       if (nextActive) void fetchWallets(true)
     } catch (error) {
-      setNotice({ type: 'error', message: error instanceof Error ? error.message : 'Não foi possível alterar o estado do motor.' })
+      const message = error instanceof Error ? error.message : ''
+      const routeUnavailable = message.includes('404') && (message.includes('/start') || message.includes('/stop'))
+      if (routeUnavailable) {
+        setEngineActive(nextActive)
+        if (nextActive) {
+          await fetchWallets(true)
+          setNotice({ type: 'info', message: 'A API não expõe POST /start. O monitoramento foi iniciado localmente usando GET /found, que está respondendo 200.' })
+        } else {
+          setNotice({ type: 'info', message: 'A API não expõe POST /stop. O monitoramento local foi pausado e nenhuma nova consulta será feita.' })
+        }
+      } else {
+        setNotice({ type: 'error', message: message || 'Não foi possível alterar o estado do motor.' })
+      }
     } finally {
       setActionLoading(null)
     }
