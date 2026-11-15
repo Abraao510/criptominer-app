@@ -25,7 +25,7 @@ export async function requestApi<T>(path: string, init: ApiInit = {}): Promise<T
       : typeof payload === 'object' && payload !== null && 'error' in payload
         ? String(payload.error)
         : `A API respondeu com status ${response.status}.`
-    throw new Error(detail)
+    throw new Error(`${init.method ?? 'GET'} ${path}: ${detail}`)
   }
 
   return payload as T
