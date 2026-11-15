@@ -232,7 +232,7 @@ export default function App() {
     try {
       await setEngine(nextActive)
       setEngineActive(nextActive)
-      setNotice({ type: 'success', message: nextActive ? 'Motor iniciado. O painel será atualizado a cada 10 segundos.' : 'Motor parado. A atualização automática foi pausada.' })
+      setNotice({ type: 'success', message: nextActive ? 'Motor iniciado pela API (POST /start). O painel será atualizado a cada 10 segundos.' : 'Motor parado pela API (POST /stop). A atualização automática foi pausada.' })
       if (nextActive) void fetchWallets(true)
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
