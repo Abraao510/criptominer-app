@@ -106,13 +106,19 @@ function Metric({ label, value, detail, accent = 'blue', icon }: { label: string
 
 function ConsolePanel({ logs, onClear, onRefresh }: { logs: ConsoleLog[]; onClear: () => void; onRefresh: () => void }) {
   const tone = { ok: 'text-emerald-300', warn: 'text-yellow-300', error: 'text-red-300', info: 'text-sky-300' }
+  const consoleRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight
+  }, [logs])
+
   return (
-    <section className="terminal-card flex min-h-[430px] flex-col overflow-hidden xl:min-h-0">
+    <section className="terminal-card flex h-[410px] flex-col overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
         <div className="flex items-center gap-3"><Terminal className="h-4 w-4 text-sky-300" /><div><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">SYSTEM CONSOLE</p><p className="mono mt-1 text-[9px] uppercase tracking-[0.16em] text-slate-600">live API events / local session</p></div></div>
         <div className="flex items-center gap-2"><span className="mono flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-2 py-1 text-[9px] font-bold tracking-[0.16em] text-emerald-300"><StatusDot /> LIVE</span><button onClick={onRefresh} className="rounded-md p-1.5 text-slate-500 hover:bg-white/[0.06] hover:text-white" title="Atualizar a API"><RefreshCw className="h-3.5 w-3.5" /></button><button onClick={onClear} className="rounded-md p-1.5 text-slate-500 hover:bg-white/[0.06] hover:text-red-300" title="Limpar console"><Trash2 className="h-3.5 w-3.5" /></button></div>
       </div>
-      <div className="console-scroll flex-1 space-y-2 overflow-y-auto p-4">
+      <div ref={consoleRef} className="console-scroll min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
         {logs.length === 0 && <p className="mono text-xs text-slate-600">console cleared — waiting for events...</p>}
         {logs.map((log, index) => <div key={`${log.time}-${index}`} className="mono flex gap-3 text-[11px] leading-5"><span className="shrink-0 text-sky-400/70">[{log.time}]</span><span className={tone[log.tone]}>{log.text}</span></div>)}
       </div>
@@ -146,7 +152,7 @@ export default function App() {
   const copiedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const addLog = useCallback((tone: ConsoleLog['tone'], text: string) => {
-    setLogs((current) => [...current.slice(-22), { time: formatTime(new Date()), tone, text }])
+    setLogs((current) => [...current.slice(-11), { time: formatTime(new Date()), tone, text }])
   }, [])
 
   const fetchWallets = useCallback(async (silent = false) => {
@@ -261,7 +267,7 @@ export default function App() {
             <section className="terminal-card p-4"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-sky-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">NETWORK SELECTOR</p></div><p className="mono mt-1 text-[9px] uppercase tracking-[0.15em] text-slate-600">POST /set_network · current mode: {network}</p></div><div className="flex gap-2">{(['BTC', 'ETH'] as Network[]).map((item) => <button key={item} onClick={() => void handleNetworkChange(item)} disabled={actionLoading !== null} className={`mono rounded border px-5 py-2 text-[10px] font-bold tracking-[0.18em] transition disabled:opacity-50 ${network === item ? 'border-sky-300/40 bg-sky-300/15 text-sky-200' : 'border-white/[0.08] text-slate-500 hover:border-sky-300/25 hover:text-slate-200'}`}>{actionLoading === 'network' && network !== item ? '...' : item}</button>)}</div></div></section>
           </div>
 
-          <aside className="space-y-5"><div className="terminal-card p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Activity className="h-4 w-4 text-emerald-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">ENGINE STATUS</p></div><StatusDot active={engineActive} color={engineActive ? 'emerald' : 'yellow'} /></div><p className={`mono mt-6 text-2xl ${engineActive ? 'text-emerald-300' : 'text-yellow-300'}`}>{engineActive ? 'RUNNING' : 'STANDBY'}</p><p className="mono mt-2 text-[10px] leading-5 text-slate-600">{engineActive ? 'POST /start confirmed · polling /found every 10s' : 'awaiting start command'}</p></div><div className="terminal-card p-4"><div className="mb-4 flex items-center gap-2"><ClipboardList className="h-4 w-4 text-slate-400" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">LIVE ROUTES</p></div><div className="space-y-2 mono text-[10px]">{['GET /found', 'POST /set_network', 'POST /start', 'POST /stop'].map((route) => <div key={route} className="flex items-center justify-between rounded bg-black/20 px-3 py-2 text-slate-500"><span>{route}</span><span className="text-emerald-300">200</span></div>)}</div></div></aside>
+          <aside><div className="terminal-card p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Activity className="h-4 w-4 text-emerald-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">ENGINE STATUS</p></div><StatusDot active={engineActive} color={engineActive ? 'emerald' : 'yellow'} /></div><p className={`mono mt-6 text-2xl ${engineActive ? 'text-emerald-300' : 'text-yellow-300'}`}>{engineActive ? 'RUNNING' : 'STANDBY'}</p><p className="mono mt-2 text-[10px] leading-5 text-slate-600">{engineActive ? 'POST /start confirmed · polling /found every 10s' : 'awaiting start command'}</p></div></aside>
         </div>
 
         <div className="mt-5"><WalletTable wallets={wallets} onCopy={handleCopy} copiedId={copiedId} /></div>
