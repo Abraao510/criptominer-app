@@ -1,5 +1,6 @@
 import express, { type NextFunction, type Request, type Response } from 'express'
 import { createServer as createViteServer } from 'vite'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -45,6 +46,16 @@ if (process.env.NODE_ENV === 'production') {
   const vite = await createViteServer({
     server: { middlewareMode: true, hmr: false },
     appType: 'spa',
+  })
+  app.get('/', async (_req, res, next) => {
+    try {
+      const template = await readFile(path.join(__dirname, 'index.html'), 'utf8')
+      const transformed = await vite.transformIndexHtml('/', template)
+      const withoutHmrClient = transformed.replace(/<script[^>]*src=["']\/@vite\/client["'][^>]*><\/script>\s*/g, '')
+      res.status(200).type('html').send(withoutHmrClient)
+    } catch (error) {
+      next(error)
+    }
   })
   app.use(vite.middlewares)
 }
