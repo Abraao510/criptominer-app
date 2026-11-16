@@ -220,9 +220,9 @@ export default function App() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              <div className="max-h-[430px] overflow-auto">
                 <table className="w-full min-w-[640px] text-sm">
-                  <thead>
+                  <thead className="sticky top-0 z-10 bg-[#0d1017]">
                     <tr className="text-xs text-slate-600 border-b border-white/[0.05]">
                       <th className="px-5 py-3 text-left font-medium">Rede</th>
                       <th className="px-5 py-3 text-left font-medium">Frase mnemônica</th>
