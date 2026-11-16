@@ -185,6 +185,10 @@ export default function App() {
     try {
       if (action === 'reset') await resetEngine()
       else await setEngine(action === 'start')
+      if (action !== 'reset') {
+        setEngineState((current) => ({ ...current, running: action === 'start' }))
+        if (typeof window !== 'undefined') window.localStorage.setItem(ENGINE_STORAGE_KEY, String(action === 'start'))
+      }
       addLog('ok', `POST /${action} → 200`)
       setNotice({ type: 'success', message: action === 'reset' ? 'Contadores zerados pela API.' : `Scanner ${action === 'start' ? 'iniciado' : 'parado'} pela API.` })
       if (action === 'reset') await fetchFound(1)
