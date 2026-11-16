@@ -112,6 +112,7 @@ function normalizeStatus(payload: unknown) {
     attempts: record.current_attempt ?? record.currentAttempt ?? record.attempts ?? record.total,
     running: record.is_running ?? record.isRunning ?? record.running,
     network: record.network ?? record.mode,
+    targetsLoaded: record.targets_loaded ?? record.targetsLoaded,
   }
 }
 
@@ -122,9 +123,6 @@ function normalizeStats(payload: unknown) {
   const count = record.target_count ?? record.targetCount ?? record.count ?? record.total
   if (count !== undefined && count !== null) {
     return { label: 'TARGET COUNT', value: textValue(count), detail: 'GET /STATS · LIVE' } satisfies StatsReading
-  }
-  if (Array.isArray(record.strategies)) {
-    return { label: 'STRATEGIES', value: String(record.strategies.length), detail: 'GET /STATS · LIVE' } satisfies StatsReading
   }
   return null
 }
@@ -224,10 +222,11 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [apiOnline, setApiOnline] = useState(true)
   const [currentAttempt, setCurrentAttempt] = useState('N/A')
-  const [statsReading, setStatsReading] = useState<StatsReading>({ label: 'TARGET COUNT', value: 'N/A', detail: 'GET /STATS · LIVE' })
+  const [statsReading, setStatsReading] = useState<StatsReading>({ label: 'WALLETS IN DB', value: 'N/A', detail: 'GET /STATUS · TARGETS LOADED' })
   const [statusMode, setStatusMode] = useState<Network | null>(null)
   const [logs, setLogs] = useState<ConsoleLog[]>([])
   const copiedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasTargetsLoaded = useRef(false)
 
   const addLog = useCallback((tone: ConsoleLog['tone'], text: string) => {
     setLogs((current) => [...current.slice(-11), { time: formatTime(new Date()), tone, text }])
@@ -276,6 +275,10 @@ export default function App() {
       const status = normalizeStatus(payload)
       if (!status) return
       if (status.attempts !== undefined) setCurrentAttempt(textValue(status.attempts))
+      if (status.targetsLoaded !== undefined) {
+        hasTargetsLoaded.current = true
+        setStatsReading({ label: 'WALLETS IN DB', value: textValue(status.targetsLoaded), detail: 'GET /STATUS · TARGETS LOADED' })
+      }
       if (typeof status.running === 'boolean') {
         setEngineActive(status.running)
         if (typeof window !== 'undefined') window.localStorage.setItem(ENGINE_STORAGE_KEY, String(status.running))
@@ -294,7 +297,7 @@ export default function App() {
     try {
       const payload = await requestApiOptional<unknown>('/stats')
       const reading = normalizeStats(payload)
-      if (reading !== null) setStatsReading(reading)
+      if (reading !== null && !hasTargetsLoaded.current) setStatsReading(reading)
     } catch (error) {
       if (error instanceof Error && !error.message.includes('404')) addLog('error', `GET /stats → ${error.message}`)
     }
