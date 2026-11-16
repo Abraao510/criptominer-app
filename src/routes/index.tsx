@@ -71,7 +71,7 @@ function HomePage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   const prevStatusRef = useRef<Status | null>(null);
-  const logsEndRef = useRef<HTMLDivElement>(null);
+  const logsContainerRef = useRef<HTMLDivElement>(null);
 
   const PAGE_SIZE = 20;
 
@@ -79,13 +79,16 @@ function HomePage() {
   const addLog = useCallback((kind: LogEntry["kind"], text: string) => {
     setLogs((prev) => {
       const next = [...prev, mkLog(kind, text)];
-      return next.length > 200 ? next.slice(-200) : next;
+      return next.length > 120 ? next.slice(-120) : next;
     });
   }, []);
 
   // auto-scroll terminal
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = logsContainerRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
   }, [logs]);
 
   // ── fetch found wallets ──
@@ -373,14 +376,16 @@ function HomePage() {
                 terminal · logs em tempo real
               </span>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-1 h-72 lg:h-96 text-xs leading-relaxed">
+            <div
+              ref={logsContainerRef}
+              className="min-h-0 max-h-72 flex-1 overflow-y-auto p-4 space-y-1 text-xs leading-relaxed lg:max-h-96"
+            >
               {logs.map((l) => (
                 <div key={l.id} className="flex gap-3">
                   <span className="text-slate-700 flex-shrink-0">[{l.ts}]</span>
                   <span className={logColor[l.kind]}>{l.text}</span>
                 </div>
               ))}
-              <div ref={logsEndRef} />
             </div>
           </div>
 
