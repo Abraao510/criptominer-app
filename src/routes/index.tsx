@@ -62,7 +62,7 @@ function mkLog(kind: LogEntry["kind"], text: string): LogEntry {
 function HomePage() {
   const [connected, setConnected] = useState(false);
   const [status, setStatus] = useState<Status | null>(null);
-  const [logs, setLogs] = useState<LogEntry[]>([mkLog("info", "Inicializando painel...")]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [wallets, setWallets] = useState<FoundWallet[]>([]);
   const [walletsTotal, setWalletsTotal] = useState(0);
   const [walletsPage, setWalletsPage] = useState(1);
@@ -116,6 +116,7 @@ function HomePage() {
 
   // ── SSE connection ──
   useEffect(() => {
+    addLog("info", "Inicializando painel...");
     addLog("info", "Conectando ao motor BIP39...");
     let src: EventSource;
 
