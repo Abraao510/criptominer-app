@@ -27,6 +27,7 @@ import { requestApi, requestApiOptional, setEngine, setNetwork } from './api'
 import type { Network, Wallet } from './types'
 
 const REFRESH_INTERVAL = 10_000
+const FOUND_STORAGE_KEY = 'vaultline.found.wallets.v1'
 
 type Notice = { type: 'success' | 'error' | 'info'; message: string } | null
 type RawRecord = Record<string, unknown>
@@ -63,6 +64,32 @@ function normalizeWallets(payload: unknown): Wallet[] {
       mnemonic,
     }
   })
+}
+
+function readStoredWallets(): Wallet[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const value = JSON.parse(window.localStorage.getItem(FOUND_STORAGE_KEY) ?? '[]')
+    return Array.isArray(value) ? value as Wallet[] : []
+  } catch {
+    return []
+  }
+}
+
+function walletKey(wallet: Wallet) {
+  return `${wallet.network}:${wallet.address}`
+}
+
+function mergeWallets(existing: Wallet[], incoming: Wallet[]) {
+  const merged = [...existing]
+  const keys = new Set(existing.map(walletKey))
+  for (const wallet of incoming) {
+    if (!keys.has(walletKey(wallet))) {
+      merged.unshift(wallet)
+      keys.add(walletKey(wallet))
+    }
+  }
+  return merged
 }
 
 function objectValue(payload: unknown): RawRecord | null {
@@ -155,17 +182,17 @@ function ConsolePanel({ logs, onClear, onRefresh }: { logs: ConsoleLog[]; onClea
 }
 
 function WalletTable({ wallets, onCopy, copiedId }: { wallets: Wallet[]; onCopy: (wallet: Wallet) => void; copiedId: string | null }) {
-  const liveRows = wallets.map((wallet) => ({ coin: wallet.network, phrase: wallet.mnemonic, value: wallet.balance, time: 'LIVE' }))
+  const liveRows = wallets.map((wallet) => ({ coin: wallet.network, phrase: wallet.mnemonic, value: wallet.balance, time: 'STORED' }))
   return (
     <section id="wallets" className="terminal-card overflow-hidden">
-      <div className="flex flex-col gap-3 border-b border-white/[0.07] px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2"><WalletCards className="h-4 w-4 text-emerald-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">RECOVERED WALLETS</p></div><p className="mono mt-1 text-[9px] uppercase tracking-[0.16em] text-slate-600">live records / GET /found</p></div><span className="mono rounded border border-emerald-300/20 bg-emerald-300/[0.05] px-2 py-1 text-[9px] font-bold tracking-[0.15em] text-emerald-300/80">LIVE DATA</span></div>
-      {liveRows.length === 0 ? <div className="flex min-h-[180px] flex-col items-center justify-center px-6 text-center"><WalletCards className="h-7 w-7 text-slate-700" /><p className="mono mt-4 text-xs text-slate-500">NO RECORDS RETURNED</p><p className="mono mt-2 text-[10px] text-slate-700">GET /found respondeu 200 com uma lista vazia.</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left"><thead className="border-b border-white/[0.05] bg-black/20"><tr className="mono text-[9px] font-bold tracking-[0.18em] text-slate-600"><th className="px-4 py-3">COIN</th><th className="px-4 py-3">MNEMONIC PHRASE (BIP39)</th><th className="px-4 py-3">VALUE</th><th className="px-4 py-3">TIMESTAMP</th><th className="px-4 py-3"></th></tr></thead><tbody className="divide-y divide-white/[0.045]">{liveRows.map((row, index) => <tr key={`${row.coin}-${index}`} className="group text-xs text-slate-400"><td className="px-4 py-4"><span className={`mono rounded border px-2 py-1 text-[10px] font-bold ${row.coin === 'BTC' ? 'border-orange-300/20 text-orange-300' : 'border-violet-300/20 text-violet-300'}`}>{row.coin}</span></td><td className="mono px-4 py-4 text-[11px] text-slate-400">{row.phrase}</td><td className="mono px-4 py-4 text-emerald-300/80">{row.value}</td><td className="mono px-4 py-4 text-[11px] text-slate-600">{row.time}</td><td className="px-4 py-4 text-right"><button onClick={() => onCopy(wallets[index])} className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-[10px] text-slate-500 hover:border-sky-300/30 hover:text-sky-300">{copiedId === wallets[index].id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} {copiedId === wallets[index].id ? 'COPIED' : 'COPY'}</button></td></tr>)}</tbody></table></div>}
+      <div className="flex flex-col gap-3 border-b border-white/[0.07] px-4 py-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2"><WalletCards className="h-4 w-4 text-emerald-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">RECOVERED WALLETS</p></div><p className="mono mt-1 text-[9px] uppercase tracking-[0.16em] text-slate-600">GET /found · local browser history</p></div><span className="mono rounded border border-emerald-300/20 bg-emerald-300/[0.05] px-2 py-1 text-[9px] font-bold tracking-[0.15em] text-emerald-300/80">PERSISTED</span></div>
+      {liveRows.length === 0 ? <div className="flex min-h-[180px] flex-col items-center justify-center px-6 text-center"><WalletCards className="h-7 w-7 text-slate-700" /><p className="mono mt-4 text-xs text-slate-500">NO STORED RECORDS</p><p className="mono mt-2 text-[10px] text-slate-700">GET /found respondeu 200 e ainda não retornou uma carteira.</p></div> : <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left"><thead className="border-b border-white/[0.05] bg-black/20"><tr className="mono text-[9px] font-bold tracking-[0.18em] text-slate-600"><th className="px-4 py-3">COIN</th><th className="px-4 py-3">MNEMONIC PHRASE (BIP39)</th><th className="px-4 py-3">VALUE</th><th className="px-4 py-3">TIMESTAMP</th><th className="px-4 py-3"></th></tr></thead><tbody className="divide-y divide-white/[0.045]">{liveRows.map((row, index) => <tr key={`${row.coin}-${index}`} className="group text-xs text-slate-400"><td className="px-4 py-4"><span className={`mono rounded border px-2 py-1 text-[10px] font-bold ${row.coin === 'BTC' ? 'border-orange-300/20 text-orange-300' : 'border-violet-300/20 text-violet-300'}`}>{row.coin}</span></td><td className="mono px-4 py-4 text-[11px] text-slate-400">{row.phrase}</td><td className="mono px-4 py-4 text-emerald-300/80">{row.value}</td><td className="mono px-4 py-4 text-[11px] text-slate-600">{row.time}</td><td className="px-4 py-4 text-right"><button onClick={() => onCopy(wallets[index])} className="inline-flex items-center gap-1 rounded border border-white/10 px-2 py-1 text-[10px] text-slate-500 hover:border-sky-300/30 hover:text-sky-300">{copiedId === wallets[index].id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} {copiedId === wallets[index].id ? 'COPIED' : 'COPY'}</button></td></tr>)}</tbody></table></div>}
     </section>
   )
 }
 
 export default function App() {
-  const [wallets, setWallets] = useState<Wallet[]>([])
+  const [wallets, setWallets] = useState<Wallet[]>(readStoredWallets)
   const [engineActive, setEngineActive] = useState(false)
   const [network, setNetworkState] = useState<Network>('BTC')
   const [isLoading, setIsLoading] = useState(true)
@@ -190,10 +217,16 @@ export default function App() {
     try {
       const payload = await requestApi<unknown>('/found')
       const nextWallets = normalizeWallets(payload)
-      setWallets(nextWallets)
+      let addedCount = 0
+      setWallets((current) => {
+        const merged = mergeWallets(current, nextWallets)
+        addedCount = merged.length - current.length
+        if (typeof window !== 'undefined') window.localStorage.setItem(FOUND_STORAGE_KEY, JSON.stringify(merged))
+        return merged
+      })
       setLastUpdated(new Date())
       setApiOnline(true)
-      addLog(nextWallets.length ? 'ok' : 'warn', `GET /found → 200 — ${nextWallets.length} live record(s) received`)
+      addLog(nextWallets.length ? 'ok' : 'warn', `GET /found → 200 — ${nextWallets.length} live record(s) received${addedCount ? ` · ${addedCount} new wallet(s) stored locally` : ''}`)
     } catch (error) {
       setApiOnline(false)
       addLog('error', error instanceof Error ? error.message : 'API connection error')
