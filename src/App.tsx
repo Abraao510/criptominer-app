@@ -172,7 +172,7 @@ export default function App() {
 
   useEffect(() => {
     const source = new EventSource('/api/events')
-    const onStatus = (event: MessageEvent) => { try { const next = normalizeStatus(JSON.parse(event.data)); if (next) applyStatus(next) } catch { addLog('error', 'SSE /events enviou payload inválido') } }
+    const onStatus = (event: MessageEvent) => { try { const next = normalizeStatus(JSON.parse(event.data)); if (next) { setHealth('online'); applyStatus(next) } } catch { addLog('error', 'SSE /events enviou payload inválido') } }
     const onOpen = () => { setEventsConnected(true); setHealth('online'); addLog('ok', 'SSE /events → connected — realtime stream active') }
     const onError = () => { setEventsConnected(false); addLog('warn', 'SSE /events → conexão perdida — reconexão automática') }
     source.addEventListener('status', onStatus); source.onopen = onOpen; source.onerror = onError
