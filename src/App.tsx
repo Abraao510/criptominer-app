@@ -116,7 +116,7 @@ function normalizeCurrent(payload: unknown) {
   if (!record) return null
   const seed = record.seed ?? record.mnemonic ?? record.mnemonic_phrase ?? record.phrase
   const address = record.address ?? record.wallet_address ?? record.public_key
-  if (seed === undefined && address === undefined) return null
+  if (!seed && !address) return null
   return { seed: textValue(seed), address: textValue(address), timestamp: textValue(record.timestamp ?? record.time, '') }
 }
 
@@ -211,7 +211,7 @@ export default function App() {
     setLogs((current) => [...current.slice(-11), { time: formatTime(new Date()), tone, text }])
   }, [])
 
-  const fetchWallets = useCallback(async (silent = false) => {
+  const fetchWallets = useCallback(async (silent = false, stopOnFound = false) => {
     if (silent) setIsRefreshing(true)
     else setIsLoading(true)
     try {
@@ -227,6 +227,16 @@ export default function App() {
       setLastUpdated(new Date())
       setApiOnline(true)
       addLog(nextWallets.length ? 'ok' : 'warn', `GET /found → 200 — ${nextWallets.length} live record(s) received${addedCount ? ` · ${addedCount} new wallet(s) stored locally` : ''}`)
+      if (stopOnFound && nextWallets.length > 0) {
+        try {
+          await setEngine(false)
+          setEngineActive(false)
+          addLog('ok', 'FOUND detected — POST /stop → 200 — engine stopped automatically')
+          setNotice({ type: 'success', message: 'Carteira encontrada, armazenada e exibida. O motor foi parado automaticamente.' })
+        } catch (error) {
+          addLog('error', error instanceof Error ? `FOUND detected, but automatic stop failed: ${error.message}` : 'FOUND detected, but automatic stop failed')
+        }
+      }
     } catch (error) {
       setApiOnline(false)
       addLog('error', error instanceof Error ? error.message : 'API connection error')
@@ -275,7 +285,7 @@ export default function App() {
   useEffect(() => {
     if (!engineActive) return
     const interval = window.setInterval(() => {
-      void fetchWallets(true)
+      void fetchWallets(true, true)
       addLog('info', 'automatic polling — next GET /found scheduled in 10s')
     }, REFRESH_INTERVAL)
     return () => window.clearInterval(interval)
@@ -314,7 +324,7 @@ export default function App() {
       setEngineActive(nextActive)
       addLog('ok', `POST ${nextActive ? '/start' : '/stop'} → 200 — engine ${nextActive ? 'running' : 'stopped'}`)
       setNotice({ type: 'success', message: nextActive ? 'Motor iniciado pela API. Monitoramento real ativo a cada 10 segundos.' : 'Motor parado pela API. Atualização automática pausada.' })
-      if (nextActive) void fetchWallets(true)
+      if (nextActive) void fetchWallets(true, true)
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
       const routeUnavailable = message.includes('404') && (message.includes('/start') || message.includes('/stop'))
