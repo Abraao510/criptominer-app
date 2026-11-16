@@ -114,6 +114,14 @@ function normalizeStatus(payload: unknown) {
   }
 }
 
+function normalizeStats(payload: unknown) {
+  const root = objectValue(payload)
+  const record = objectValue(root?.stats) ?? objectValue(root?.data) ?? root
+  if (!record) return null
+  const count = record.target_count ?? record.targetCount ?? record.count ?? record.total
+  return count === undefined || count === null ? null : textValue(count)
+}
+
 function normalizeCurrent(payload: unknown) {
   const root = objectValue(payload)
   const nested = root?.current ?? root?.data ?? root
@@ -209,6 +217,7 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [apiOnline, setApiOnline] = useState(true)
   const [currentAttempt, setCurrentAttempt] = useState('N/A')
+  const [targetCount, setTargetCount] = useState('N/A')
   const [statusMode, setStatusMode] = useState<Network | null>(null)
   const [logs, setLogs] = useState<ConsoleLog[]>([])
   const copiedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -274,6 +283,16 @@ export default function App() {
     }
   }, [addLog])
 
+  const fetchStats = useCallback(async () => {
+    try {
+      const payload = await requestApiOptional<unknown>('/stats')
+      const count = normalizeStats(payload)
+      if (count !== null) setTargetCount(count)
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('404')) addLog('error', `GET /stats → ${error.message}`)
+    }
+  }, [addLog])
+
   const fetchCurrent = useCallback(async () => {
     try {
       const payload = await requestApiOptional<unknown>('/current')
@@ -291,6 +310,12 @@ export default function App() {
     const interval = window.setInterval(() => void fetchStatus(), 5_000)
     return () => window.clearInterval(interval)
   }, [fetchStatus])
+
+  useEffect(() => {
+    void fetchStats()
+    const interval = window.setInterval(() => void fetchStats(), 5_000)
+    return () => window.clearInterval(interval)
+  }, [fetchStats])
 
   useEffect(() => {
     if (!engineActive) return
@@ -375,7 +400,7 @@ export default function App() {
 
         <section className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="CHAIN SYNC" value="N/A" detail="NOT EXPOSED BY API" icon={<Layers3 className="h-4 w-4" />} />
-          <Metric label="ENTROPY POOL" value="N/A" detail="NOT EXPOSED BY API" icon={<Gauge className="h-4 w-4" />} />
+          <Metric label="TARGET COUNT" value={targetCount} detail="GET /STATS · LIVE" icon={<Gauge className="h-4 w-4" />} />
           <Metric label="NODE HEALTH" value="N/A" detail="NOT EXPOSED BY API" icon={<Server className="h-4 w-4" />} />
           <Metric label="SEED WINDOW" value="N/A" detail="NOT EXPOSED BY API" icon={<Zap className="h-4 w-4" />} />
         </section>
