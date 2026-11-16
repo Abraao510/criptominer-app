@@ -42,7 +42,12 @@ function normalizeFound(payload: unknown): { total: number; items: Wallet[] } {
     : Array.isArray(payload)
       ? payload
       : []
-  const items = rawItems.filter((item): item is Wallet => Boolean(item && typeof item === 'object'))
+  const items = rawItems
+    .filter((item): item is Wallet => Boolean(item && typeof item === 'object'))
+    .map((item, index) => ({
+      ...item,
+      id: item.id || `${item.network || 'UNKNOWN'}:${item.address || item.mnemonic || 'wallet'}:${index}`,
+    }))
   const total = typeof record?.total === 'number' ? record.total : items.length
   return { total, items }
 }
