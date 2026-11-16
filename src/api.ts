@@ -50,3 +50,7 @@ export async function setNetwork(mode: 'BTC' | 'ETH') {
 export async function setEngine(active: boolean) {
   return requestApi(active ? '/start' : '/stop', { method: 'POST' })
 }
+
+export async function resetEngine() {
+  return requestApi('/reset', { method: 'POST' })
+}
