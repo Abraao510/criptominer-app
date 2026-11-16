@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleDot,
-  ClipboardList,
   Copy,
   Cpu,
   Database,
@@ -24,7 +23,7 @@ import {
   WalletCards,
   Zap,
 } from 'lucide-react'
-import { requestApi, setEngine, setNetwork } from './api'
+import { requestApi, requestApiOptional, setEngine, setNetwork } from './api'
 import type { Network, Wallet } from './types'
 
 const REFRESH_INTERVAL = 10_000
@@ -64,6 +63,34 @@ function normalizeWallets(payload: unknown): Wallet[] {
       mnemonic,
     }
   })
+}
+
+function objectValue(payload: unknown): RawRecord | null {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null
+  return payload as RawRecord
+}
+
+function normalizeStatus(payload: unknown) {
+  const root = objectValue(payload)
+  const record = objectValue(root?.status) ?? objectValue(root?.data) ?? root
+  if (!record) return null
+  return {
+    attempts: record.current_attempt ?? record.currentAttempt ?? record.attempts,
+    running: record.is_running ?? record.isRunning ?? record.running,
+    network: record.network ?? record.mode,
+  }
+}
+
+function normalizeCurrent(payload: unknown) {
+  const root = objectValue(payload)
+  const nested = root?.current ?? root?.data ?? root
+  const item = Array.isArray(payload) ? payload[payload.length - 1] : nested
+  const record = objectValue(item)
+  if (!record) return null
+  const seed = record.seed ?? record.mnemonic ?? record.mnemonic_phrase ?? record.phrase
+  const address = record.address ?? record.wallet_address ?? record.public_key
+  if (seed === undefined && address === undefined) return null
+  return { seed: textValue(seed), address: textValue(address), timestamp: textValue(record.timestamp ?? record.time, '') }
 }
 
 function formatTime(value: Date | null) {
@@ -148,6 +175,8 @@ export default function App() {
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [apiOnline, setApiOnline] = useState(true)
+  const [currentAttempt, setCurrentAttempt] = useState('N/A')
+  const [statusMode, setStatusMode] = useState<Network | null>(null)
   const [logs, setLogs] = useState<ConsoleLog[]>([])
   const copiedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -175,7 +204,40 @@ export default function App() {
     }
   }, [addLog])
 
+  const fetchStatus = useCallback(async () => {
+    try {
+      const payload = await requestApiOptional<unknown>('/status')
+      const status = normalizeStatus(payload)
+      if (!status) return
+      if (status.attempts !== undefined) setCurrentAttempt(textValue(status.attempts))
+      if (typeof status.running === 'boolean') setEngineActive(status.running)
+      const nextNetwork = String(status.network ?? '').toUpperCase()
+      if (nextNetwork === 'BTC' || nextNetwork === 'ETH') {
+        setNetworkState(nextNetwork)
+        setStatusMode(nextNetwork)
+      }
+    } catch (error) {
+      if (error instanceof Error) addLog('error', `GET /status → ${error.message}`)
+    }
+  }, [addLog])
+
+  const fetchCurrent = useCallback(async () => {
+    try {
+      const payload = await requestApiOptional<unknown>('/current')
+      const current = normalizeCurrent(payload)
+      if (current) addLog('info', `GET /current → seed ${current.seed} · address ${current.address}${current.timestamp ? ` · ${current.timestamp}` : ''}`)
+    } catch (error) {
+      if (error instanceof Error) addLog('error', `GET /current → ${error.message}`)
+    }
+  }, [addLog])
+
   useEffect(() => { void fetchWallets() }, [fetchWallets])
+
+  useEffect(() => {
+    void fetchStatus()
+    const interval = window.setInterval(() => void fetchStatus(), 5_000)
+    return () => window.clearInterval(interval)
+  }, [fetchStatus])
 
   useEffect(() => {
     if (!engineActive) return
@@ -185,6 +247,13 @@ export default function App() {
     }, REFRESH_INTERVAL)
     return () => window.clearInterval(interval)
   }, [engineActive, fetchWallets, addLog])
+
+  useEffect(() => {
+    if (!engineActive) return
+    void fetchCurrent()
+    const interval = window.setInterval(() => void fetchCurrent(), 500)
+    return () => window.clearInterval(interval)
+  }, [engineActive, fetchCurrent])
 
   const btcCount = useMemo(() => wallets.filter((wallet) => wallet.network === 'BTC').length, [wallets])
   const ethCount = useMemo(() => wallets.filter((wallet) => wallet.network === 'ETH').length, [wallets])
@@ -258,13 +327,13 @@ export default function App() {
 
         <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
           <aside className="space-y-5">
-            <section className="terminal-card p-4"><div className="mb-5 flex items-center justify-between"><div className="flex items-center gap-2"><Cpu className="h-4 w-4 text-sky-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">ENGINE CONTROL</p></div><span className="mono text-[9px] text-slate-600">LIVE API</span></div><div className="grid grid-cols-2 gap-3">{[['ATTEMPTS', 'N/A'], ['HASH RATE', 'N/A'], ['FOUND', String(wallets.length)], ['PROFIT', 'N/A']].map(([label, value]) => <div key={label} className="rounded-lg border border-white/[0.06] bg-black/20 p-3"><p className="mono text-[9px] tracking-[0.14em] text-slate-600">{label}</p><p className="mono mt-2 text-sm text-slate-200">{value}</p></div>)}</div><div className="mt-5"><div className="mb-2 flex justify-between"><span className="mono text-[9px] tracking-[0.15em] text-slate-500">RECOVERY PRESSURE</span><span className="mono text-[10px] text-slate-500">N/A</span></div><div className="h-1.5 rounded-full bg-white/[0.07]" /></div><button onClick={() => void handleEngineToggle()} disabled={actionLoading !== null} className={`mono mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-3 text-[10px] font-bold tracking-[0.16em] transition disabled:opacity-50 ${engineActive ? 'border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20' : 'border-sky-300/20 bg-sky-300/[0.08] text-sky-300 hover:bg-sky-300/[0.14]'}`}>{actionLoading === 'engine' ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : engineActive ? <Square className="h-3.5 w-3.5 fill-current" /> : <Play className="h-3.5 w-3.5 fill-current" />}{actionLoading === 'engine' ? 'PROCESSING...' : engineActive ? 'STOP ENGINE' : 'START ENGINE'}</button></section>
+            <section className="terminal-card p-4"><div className="mb-5 flex items-center justify-between"><div className="flex items-center gap-2"><Cpu className="h-4 w-4 text-sky-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">ENGINE CONTROL</p></div><span className="mono text-[9px] text-slate-600">LIVE API</span></div><div className="grid grid-cols-2 gap-3">{[['ATTEMPTS', currentAttempt], ['HASH RATE', 'N/A'], ['FOUND', String(wallets.length)], ['PROFIT', 'N/A']].map(([label, value]) => <div key={label} className="rounded-lg border border-white/[0.06] bg-black/20 p-3"><p className="mono text-[9px] tracking-[0.14em] text-slate-600">{label}</p><p className="mono mt-2 text-sm text-slate-200">{value}</p></div>)}</div><div className="mt-5"><div className="mb-2 flex justify-between"><span className="mono text-[9px] tracking-[0.15em] text-slate-500">RECOVERY PRESSURE</span><span className="mono text-[10px] text-slate-500">N/A</span></div><div className="h-1.5 rounded-full bg-white/[0.07]" /></div><button onClick={() => void handleEngineToggle()} disabled={actionLoading !== null} className={`mono mt-5 flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-3 text-[10px] font-bold tracking-[0.16em] transition disabled:opacity-50 ${engineActive ? 'border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20' : 'border-sky-300/20 bg-sky-300/[0.08] text-sky-300 hover:bg-sky-300/[0.14]'}`}>{actionLoading === 'engine' ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : engineActive ? <Square className="h-3.5 w-3.5 fill-current" /> : <Play className="h-3.5 w-3.5 fill-current" />}{actionLoading === 'engine' ? 'PROCESSING...' : engineActive ? 'STOP ENGINE' : 'START ENGINE'}</button></section>
             <section className="terminal-card p-4"><div className="mb-4 flex items-center gap-2"><Database className="h-4 w-4 text-slate-400" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">DATA SOURCE</p></div><div className="space-y-3 mono text-[10px]">{[['Endpoint', 'API /found', 'sky'], ['Records', String(wallets.length), 'emerald'], ['Latency', 'N/A', 'yellow'], ['Transport', 'HTTPS', 'emerald']].map(([label, value, color]) => <div key={label} className="flex items-center justify-between border-b border-white/[0.04] pb-2 last:border-0"><span className="text-slate-600">{label}</span><span className={`flex items-center gap-2 ${color === 'yellow' ? 'text-yellow-300' : color === 'sky' ? 'text-sky-300' : 'text-emerald-300'}`}><StatusDot color={color === 'yellow' ? 'yellow' : 'emerald'} />{value}</span></div>)}</div></section>
           </aside>
 
           <div className="space-y-5">
             <ConsolePanel logs={logs} onClear={() => setLogs([])} onRefresh={() => void fetchWallets(true)} />
-            <section className="terminal-card p-4"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-sky-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">NETWORK SELECTOR</p></div><p className="mono mt-1 text-[9px] uppercase tracking-[0.15em] text-slate-600">POST /set_network · current mode: {network}</p></div><div className="flex gap-2">{(['BTC', 'ETH'] as Network[]).map((item) => <button key={item} onClick={() => void handleNetworkChange(item)} disabled={actionLoading !== null} className={`mono rounded border px-5 py-2 text-[10px] font-bold tracking-[0.18em] transition disabled:opacity-50 ${network === item ? 'border-sky-300/40 bg-sky-300/15 text-sky-200' : 'border-white/[0.08] text-slate-500 hover:border-sky-300/25 hover:text-slate-200'}`}>{actionLoading === 'network' && network !== item ? '...' : item}</button>)}</div></div></section>
+            <section className="terminal-card p-4"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-sky-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">NETWORK SELECTOR</p></div><p className="mono mt-1 text-[9px] uppercase tracking-[0.15em] text-slate-600">POST /set_network · current mode: {statusMode ?? network}</p></div><div className="flex gap-2">{(['BTC', 'ETH'] as Network[]).map((item) => <button key={item} onClick={() => void handleNetworkChange(item)} disabled={actionLoading !== null} className={`mono rounded border px-5 py-2 text-[10px] font-bold tracking-[0.18em] transition disabled:opacity-50 ${network === item ? 'border-sky-300/40 bg-sky-300/15 text-sky-200' : 'border-white/[0.08] text-slate-500 hover:border-sky-300/25 hover:text-slate-200'}`}>{actionLoading === 'network' && network !== item ? '...' : item}</button>)}</div></div></section>
           </div>
 
           <aside><div className="terminal-card p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Activity className="h-4 w-4 text-emerald-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">ENGINE STATUS</p></div><StatusDot active={engineActive} color={engineActive ? 'emerald' : 'yellow'} /></div><p className={`mono mt-6 text-2xl ${engineActive ? 'text-emerald-300' : 'text-yellow-300'}`}>{engineActive ? 'RUNNING' : 'STANDBY'}</p><p className="mono mt-2 text-[10px] leading-5 text-slate-600">{engineActive ? 'POST /start confirmed · polling /found every 10s' : 'awaiting start command'}</p></div></aside>

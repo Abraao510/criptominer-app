@@ -31,6 +31,15 @@ export async function requestApi<T>(path: string, init: ApiInit = {}): Promise<T
   return payload as T
 }
 
+export async function requestApiOptional<T>(path: string, init: ApiInit = {}): Promise<T | null> {
+  try {
+    return await requestApi<T>(path, init)
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('404')) return null
+    throw error
+  }
+}
+
 export async function setNetwork(mode: 'BTC' | 'ETH') {
   return requestApi('/set_network', {
     method: 'POST',
