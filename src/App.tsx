@@ -102,7 +102,7 @@ function normalizeStatus(payload: unknown) {
   const record = objectValue(root?.status) ?? objectValue(root?.data) ?? root
   if (!record) return null
   return {
-    attempts: record.current_attempt ?? record.currentAttempt ?? record.attempts,
+    attempts: record.current_attempt ?? record.currentAttempt ?? record.attempts ?? record.total,
     running: record.is_running ?? record.isRunning ?? record.running,
     network: record.network ?? record.mode,
   }
@@ -379,7 +379,7 @@ export default function App() {
             <section className="terminal-card p-4"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-sky-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">NETWORK SELECTOR</p></div><p className="mono mt-1 text-[9px] uppercase tracking-[0.15em] text-slate-600">POST /set_network · current mode: {statusMode ?? network}</p></div><div className="flex gap-2">{(['BTC', 'ETH'] as Network[]).map((item) => <button key={item} onClick={() => void handleNetworkChange(item)} disabled={actionLoading !== null} className={`mono rounded border px-5 py-2 text-[10px] font-bold tracking-[0.18em] transition disabled:opacity-50 ${network === item ? 'border-sky-300/40 bg-sky-300/15 text-sky-200' : 'border-white/[0.08] text-slate-500 hover:border-sky-300/25 hover:text-slate-200'}`}>{actionLoading === 'network' && network !== item ? '...' : item}</button>)}</div></div></section>
           </div>
 
-          <aside><div className="terminal-card p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Activity className="h-4 w-4 text-emerald-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">ENGINE STATUS</p></div><StatusDot active={engineActive} color={engineActive ? 'emerald' : 'yellow'} /></div><p className={`mono mt-6 text-2xl ${engineActive ? 'text-emerald-300' : 'text-yellow-300'}`}>{engineActive ? 'RUNNING' : 'STANDBY'}</p><p className="mono mt-2 text-[10px] leading-5 text-slate-600">{engineActive ? 'POST /start confirmed · polling /found every 10s' : 'awaiting start command'}</p></div></aside>
+          <aside><div className="terminal-card p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Activity className="h-4 w-4 text-emerald-300" /><p className="mono text-[11px] font-bold tracking-[0.2em] text-slate-200">CLOUD ENGINE</p></div><StatusDot active={engineActive} color={engineActive ? 'emerald' : 'yellow'} /></div><p className={`mono mt-6 text-2xl ${engineActive ? 'text-emerald-300' : 'text-yellow-300'}`}>{engineActive ? 'RUNNING' : 'STANDBY'}</p><p className="mono mt-2 text-[10px] leading-5 text-slate-600">{engineActive ? 'server running · restored from GET /status' : 'server awaiting start command'}</p></div></aside>
         </div>
 
         <div className="mt-5"><WalletTable wallets={wallets} onCopy={handleCopy} copiedId={copiedId} /></div>
