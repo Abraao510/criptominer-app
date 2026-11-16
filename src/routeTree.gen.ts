@@ -10,33 +10,154 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiCandidatesRouteImport } from './routes/api/candidates'
+import { Route as ApiEventsRouteImport } from './routes/api/events'
+import { Route as ApiFoundRouteImport } from './routes/api/found'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiResetRouteImport } from './routes/api/reset'
+import { Route as ApiStartRouteImport } from './routes/api/start'
+import { Route as ApiStatusRouteImport } from './routes/api/status'
+import { Route as ApiStopRouteImport } from './routes/api/stop'
+import { Route as ApiUnverifiedRouteImport } from './routes/api/unverified'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCandidatesRoute = ApiCandidatesRouteImport.update({
+  id: '/api/candidates',
+  path: '/api/candidates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiEventsRoute = ApiEventsRouteImport.update({
+  id: '/api/events',
+  path: '/api/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFoundRoute = ApiFoundRouteImport.update({
+  id: '/api/found',
+  path: '/api/found',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResetRoute = ApiResetRouteImport.update({
+  id: '/api/reset',
+  path: '/api/reset',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStartRoute = ApiStartRouteImport.update({
+  id: '/api/start',
+  path: '/api/start',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStatusRoute = ApiStatusRouteImport.update({
+  id: '/api/status',
+  path: '/api/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStopRoute = ApiStopRouteImport.update({
+  id: '/api/stop',
+  path: '/api/stop',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUnverifiedRoute = ApiUnverifiedRouteImport.update({
+  id: '/api/unverified',
+  path: '/api/unverified',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/candidates': typeof ApiCandidatesRoute
+  '/api/events': typeof ApiEventsRoute
+  '/api/found': typeof ApiFoundRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/reset': typeof ApiResetRoute
+  '/api/start': typeof ApiStartRoute
+  '/api/status': typeof ApiStatusRoute
+  '/api/stop': typeof ApiStopRoute
+  '/api/unverified': typeof ApiUnverifiedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/candidates': typeof ApiCandidatesRoute
+  '/api/events': typeof ApiEventsRoute
+  '/api/found': typeof ApiFoundRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/reset': typeof ApiResetRoute
+  '/api/start': typeof ApiStartRoute
+  '/api/status': typeof ApiStatusRoute
+  '/api/stop': typeof ApiStopRoute
+  '/api/unverified': typeof ApiUnverifiedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/candidates': typeof ApiCandidatesRoute
+  '/api/events': typeof ApiEventsRoute
+  '/api/found': typeof ApiFoundRoute
+  '/api/health': typeof ApiHealthRoute
+  '/api/reset': typeof ApiResetRoute
+  '/api/start': typeof ApiStartRoute
+  '/api/status': typeof ApiStatusRoute
+  '/api/stop': typeof ApiStopRoute
+  '/api/unverified': typeof ApiUnverifiedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/api/candidates'
+    | '/api/events'
+    | '/api/found'
+    | '/api/health'
+    | '/api/reset'
+    | '/api/start'
+    | '/api/status'
+    | '/api/stop'
+    | '/api/unverified'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/api/candidates'
+    | '/api/events'
+    | '/api/found'
+    | '/api/health'
+    | '/api/reset'
+    | '/api/start'
+    | '/api/status'
+    | '/api/stop'
+    | '/api/unverified'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/candidates'
+    | '/api/events'
+    | '/api/found'
+    | '/api/health'
+    | '/api/reset'
+    | '/api/start'
+    | '/api/status'
+    | '/api/stop'
+    | '/api/unverified'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiCandidatesRoute: typeof ApiCandidatesRoute
+  ApiEventsRoute: typeof ApiEventsRoute
+  ApiFoundRoute: typeof ApiFoundRoute
+  ApiHealthRoute: typeof ApiHealthRoute
+  ApiResetRoute: typeof ApiResetRoute
+  ApiStartRoute: typeof ApiStartRoute
+  ApiStatusRoute: typeof ApiStatusRoute
+  ApiStopRoute: typeof ApiStopRoute
+  ApiUnverifiedRoute: typeof ApiUnverifiedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +169,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/candidates': {
+      id: '/api/candidates'
+      path: '/api/candidates'
+      fullPath: '/api/candidates'
+      preLoaderRoute: typeof ApiCandidatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/events': {
+      id: '/api/events'
+      path: '/api/events'
+      fullPath: '/api/events'
+      preLoaderRoute: typeof ApiEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/found': {
+      id: '/api/found'
+      path: '/api/found'
+      fullPath: '/api/found'
+      preLoaderRoute: typeof ApiFoundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/reset': {
+      id: '/api/reset'
+      path: '/api/reset'
+      fullPath: '/api/reset'
+      preLoaderRoute: typeof ApiResetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/start': {
+      id: '/api/start'
+      path: '/api/start'
+      fullPath: '/api/start'
+      preLoaderRoute: typeof ApiStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/status': {
+      id: '/api/status'
+      path: '/api/status'
+      fullPath: '/api/status'
+      preLoaderRoute: typeof ApiStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stop': {
+      id: '/api/stop'
+      path: '/api/stop'
+      fullPath: '/api/stop'
+      preLoaderRoute: typeof ApiStopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/unverified': {
+      id: '/api/unverified'
+      path: '/api/unverified'
+      fullPath: '/api/unverified'
+      preLoaderRoute: typeof ApiUnverifiedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiCandidatesRoute: ApiCandidatesRoute,
+  ApiEventsRoute: ApiEventsRoute,
+  ApiFoundRoute: ApiFoundRoute,
+  ApiHealthRoute: ApiHealthRoute,
+  ApiResetRoute: ApiResetRoute,
+  ApiStartRoute: ApiStartRoute,
+  ApiStatusRoute: ApiStatusRoute,
+  ApiStopRoute: ApiStopRoute,
+  ApiUnverifiedRoute: ApiUnverifiedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

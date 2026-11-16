@@ -1,5 +1,3 @@
-export const config = { runtime: "edge" };
-
 const DEFAULT_API_URL = "http://178.95.25.53:3000";
 
 export default async function handler(req: Request): Promise<Response> {
