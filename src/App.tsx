@@ -35,6 +35,18 @@ function fmt(n: number | null | undefined) {
   return new Intl.NumberFormat('pt-BR').format(n)
 }
 
+function normalizeFound(payload: unknown): { total: number; items: Wallet[] } {
+  const record = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload as Record<string, unknown> : null
+  const rawItems = Array.isArray(record?.items)
+    ? record.items
+    : Array.isArray(payload)
+      ? payload
+      : []
+  const items = rawItems.filter((item): item is Wallet => Boolean(item && typeof item === 'object'))
+  const total = typeof record?.total === 'number' ? record.total : items.length
+  return { total, items }
+}
+
 export default function App() {
   const [connected, setConnected] = useState(false)
   const [status, setStatus] = useState<Status | null>(null)
@@ -49,7 +61,8 @@ export default function App() {
   const fetchPage = useCallback(async (p: number) => {
     setLoadingPage(true)
     try {
-      const res = await requestApi<{ total: number; items: Wallet[] }>(`/found?page=${p}&limit=${PAGE_SIZE}`)
+      const payload = await requestApi<unknown>(`/found?page=${p}&limit=${PAGE_SIZE}`)
+      const res = normalizeFound(payload)
       setTotal(res.total)
       setWallets(prev => {
         const existing = new Map(prev.map(w => [w.address, w]))
