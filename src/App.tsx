@@ -33,6 +33,7 @@ const ENGINE_STORAGE_KEY = 'vaultline.engine.active.v1'
 type Notice = { type: 'success' | 'error' | 'info'; message: string } | null
 type RawRecord = Record<string, unknown>
 type ConsoleLog = { time: string; tone: 'ok' | 'warn' | 'error' | 'info'; text: string }
+type StatsReading = { label: string; value: string; detail: string }
 
 function textValue(value: unknown, fallback = '—') {
   if (value === null || value === undefined || value === '') return fallback
@@ -119,7 +120,13 @@ function normalizeStats(payload: unknown) {
   const record = objectValue(root?.stats) ?? objectValue(root?.data) ?? root
   if (!record) return null
   const count = record.target_count ?? record.targetCount ?? record.count ?? record.total
-  return count === undefined || count === null ? null : textValue(count)
+  if (count !== undefined && count !== null) {
+    return { label: 'TARGET COUNT', value: textValue(count), detail: 'GET /STATS · LIVE' } satisfies StatsReading
+  }
+  if (Array.isArray(record.strategies)) {
+    return { label: 'STRATEGIES', value: String(record.strategies.length), detail: 'GET /STATS · LIVE' } satisfies StatsReading
+  }
+  return null
 }
 
 function normalizeCurrent(payload: unknown) {
@@ -217,7 +224,7 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [apiOnline, setApiOnline] = useState(true)
   const [currentAttempt, setCurrentAttempt] = useState('N/A')
-  const [targetCount, setTargetCount] = useState('N/A')
+  const [statsReading, setStatsReading] = useState<StatsReading>({ label: 'TARGET COUNT', value: 'N/A', detail: 'GET /STATS · LIVE' })
   const [statusMode, setStatusMode] = useState<Network | null>(null)
   const [logs, setLogs] = useState<ConsoleLog[]>([])
   const copiedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -286,8 +293,8 @@ export default function App() {
   const fetchStats = useCallback(async () => {
     try {
       const payload = await requestApiOptional<unknown>('/stats')
-      const count = normalizeStats(payload)
-      if (count !== null) setTargetCount(count)
+      const reading = normalizeStats(payload)
+      if (reading !== null) setStatsReading(reading)
     } catch (error) {
       if (error instanceof Error && !error.message.includes('404')) addLog('error', `GET /stats → ${error.message}`)
     }
@@ -400,7 +407,7 @@ export default function App() {
 
         <section className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="CHAIN SYNC" value="N/A" detail="NOT EXPOSED BY API" icon={<Layers3 className="h-4 w-4" />} />
-          <Metric label="TARGET COUNT" value={targetCount} detail="GET /STATS · LIVE" icon={<Gauge className="h-4 w-4" />} />
+          <Metric label={statsReading.label} value={statsReading.value} detail={statsReading.detail} icon={<Gauge className="h-4 w-4" />} />
           <Metric label="NODE HEALTH" value="N/A" detail="NOT EXPOSED BY API" icon={<Server className="h-4 w-4" />} />
           <Metric label="SEED WINDOW" value="N/A" detail="NOT EXPOSED BY API" icon={<Zap className="h-4 w-4" />} />
         </section>
