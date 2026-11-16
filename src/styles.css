@@ -1,0 +1,406 @@
+/*
+ * Tailwind v4 entry: config lives here, with no tailwind.config.js or PostCSS plugin.
+ * - Keep every @import in this top block, above @theme and the rest of the file. Install an
+ *   npm package before @importing its CSS. Never @import a remote URL (web fonts, CDN CSS): the
+ *   build resolves @import from the filesystem. Load those with a <link> in the head() of
+ *   src/routes/__root.tsx and name the family in a --font-* token in @theme inline below.
+ */
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design system definition.
+ *
+ * The design lives in this file: oklch color tokens on the shadcn variables
+ * (--background, --foreground, --primary, --secondary, --muted, --accent, ...) plus
+ * new tokens as needed, font tokens, and custom styles and animations.
+ *
+ * The @theme inline block maps CSS custom properties to Tailwind utility
+ * classes (e.g. --color-primary -> bg-primary, text-primary).
+ *
+ * The :root and .dark blocks define the actual color values using oklch.
+ * All colors MUST use oklch format.
+ *
+ * To add a new semantic color:
+ * 1. Add the variable to :root (light value) and .dark (dark value)
+ * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ */
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.14 0.005 285);
+  --foreground: oklch(0.89 0.008 265);
+  --card: oklch(0.175 0.006 285);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.72 0.19 150);
+  --primary-foreground: oklch(0.15 0.025 150);
+  --secondary: oklch(0.23 0.01 265);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.19 0.006 285);
+  --muted-foreground: oklch(0.6 0.017 265);
+  --accent: oklch(0.25 0.012 265);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.67 0.2 25);
+  --destructive-foreground: var(--foreground);
+  --border: oklch(0.28 0.012 265);
+  --input: var(--border);
+  --ring: var(--primary);
+  --terminal: oklch(0.115 0.004 285);
+  --info: oklch(0.7 0.13 245);
+  --warning: oklch(0.82 0.16 85);
+  --bitcoin: oklch(0.76 0.17 60);
+  --ethereum: oklch(0.72 0.12 250);
+  --solana: oklch(0.72 0.16 305);
+  --font-mono: "IBM Plex Mono", monospace;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+}
+
+@layer base {
+  body {
+    font-family: var(--font-mono);
+    letter-spacing: 0;
+  }
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+}
+.recovery-shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 36px 24px 24px;
+}
+.recovery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 10%, var(--card));
+  border: 1px solid color-mix(in oklch, var(--primary) 25%, var(--border));
+  border-radius: var(--radius);
+}
+.brand-name {
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.brand-subtitle {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+.coin-selector {
+  display: flex;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--terminal);
+}
+.coin-tab {
+  min-width: 56px;
+  color: var(--muted-foreground);
+}
+.coin-tab[aria-pressed="true"] {
+  background: var(--secondary);
+}
+.coin-btc[aria-pressed="true"] {
+  color: var(--bitcoin);
+}
+.coin-eth[aria-pressed="true"] {
+  color: var(--ethereum);
+}
+.coin-sol[aria-pressed="true"] {
+  color: var(--solana);
+}
+.coin-bnb[aria-pressed="true"] {
+  color: var(--warning);
+}
+.connection-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 370px minmax(0, 1fr);
+  gap: 24px;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 22px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.control-section {
+  padding: 23px 0;
+  border-top: 1px solid var(--border);
+}
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 25px;
+}
+.metric {
+  padding: 16px 14px;
+  background: var(--terminal);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.metric-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--muted-foreground);
+  margin-bottom: 12px;
+}
+.metric-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 600;
+}
+.success-ink {
+  color: var(--primary);
+}
+.info-ink {
+  color: var(--info);
+}
+.warning-ink {
+  color: var(--warning);
+}
+.engine-button {
+  width: 100%;
+  height: 52px;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.source-list {
+  display: grid;
+  gap: 13px;
+}
+.source-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 11px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.source-line dt {
+  color: var(--muted-foreground);
+}
+.source-line dd {
+  text-align: right;
+}
+.terminal-panel {
+  height: 310px;
+  display: flex;
+  flex-direction: column;
+  background: var(--terminal);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.terminal-body {
+  padding: 18px;
+  flex: 1;
+  overflow: auto;
+  font-size: 11px;
+  line-height: 1.9;
+}
+.terminal-log {
+  display: flex;
+  gap: 10px;
+}
+.terminal-time {
+  color: var(--muted-foreground);
+  flex-shrink: 0;
+}
+.terminal-idle {
+  color: var(--muted-foreground);
+}
+.results-section {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+}
+.results-table {
+  width: 100%;
+  text-align: left;
+  font-size: 10px;
+}
+.results-table th {
+  padding: 16px 14px;
+  color: var(--muted-foreground);
+  font-weight: 500;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+.empty-results {
+  height: 190px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+.empty-icon {
+  margin: 0 auto 14px;
+  opacity: 0.5;
+}
+.results-count {
+  color: var(--primary);
+  font-size: 10px;
+}
+.recovery-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 10px;
+}
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .recovery-header {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 700px) {
+  .recovery-shell {
+    padding: 20px 16px;
+  }
+  .recovery-header {
+    padding: 18px;
+    gap: 20px;
+  }
+  .brand-name {
+    font-size: 18px;
+  }
+  .brand-mark {
+    width: 44px;
+    height: 44px;
+  }
+  .dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .coin-selector {
+    width: 100%;
+  }
+  .coin-tab {
+    flex: 1;
+  }
+  .brand-subtitle {
+    font-size: 9px;
+    gap: 8px;
+  }
+  .results-table th {
+    padding: 14px 8px;
+    font-size: 9px;
+  }
+}
