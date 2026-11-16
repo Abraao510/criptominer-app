@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const port = Number(process.env.PORT ?? 3000)
-const upstream = (process.env.API_URL ?? 'https://acceptable-tenderness-production-f1b33822.up.railway.app').replace(/\/$/, '')
+const upstream = (process.env.API_URL ?? 'http://178.95.25.53:3000').replace(/\/$/, '')
 
 app.use(express.json({ limit: '32kb' }))
 

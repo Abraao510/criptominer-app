@@ -1,4 +1,4 @@
-const DEFAULT_API_URL = 'https://acceptable-tenderness-production-f1b33822.up.railway.app'
+const DEFAULT_API_URL = 'http://178.95.25.53:3000'
 
 function pathFromQuery(value: unknown) {
   if (Array.isArray(value)) return value.join('/')

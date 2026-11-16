@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://acceptable-tenderness-production-f1b33822.up.railway.app/:path*"
+      "destination": "http://178.95.25.53:3000/:path*"
     }
   ]
 }

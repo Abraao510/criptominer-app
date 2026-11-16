@@ -1,7 +1,7 @@
 # Entregas do Dashboard de Recuperação de Carteiras
 
 ## Dashboard e integração com a API
-- [x] O app em React com Tailwind CSS deve se conectar à API `https://acceptable-tenderness-production-f1b33822.up.railway.app`, tratando estados de carregamento, sucesso e falha nas requisições.
+- [x] O app em React com Tailwind CSS deve se conectar à API `http://178.95.25.53:3000`, tratando estados de carregamento, sucesso e falha nas requisições.
 - [x] A rota `/found` (GET) deve buscar a lista de carteiras encontradas e exibi-la em cards.
 - [x] Cada card deve mostrar a Moeda (BTC/ETH), o Endereço, o Saldo e a Frase Mnemônica, com botão para copiar a frase.
 

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const upstream = process.env.API_URL ?? 'https://acceptable-tenderness-production-f1b33822.up.railway.app'
+const upstream = process.env.API_URL ?? 'http://178.95.25.53:3000'
 
 export default defineConfig({
   plugins: [react()],
