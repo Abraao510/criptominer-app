@@ -28,6 +28,7 @@ import type { Network, Wallet } from './types'
 
 const REFRESH_INTERVAL = 10_000
 const FOUND_STORAGE_KEY = 'vaultline.found.wallets.v1'
+const ENGINE_STORAGE_KEY = 'vaultline.engine.active.v1'
 
 type Notice = { type: 'success' | 'error' | 'info'; message: string } | null
 type RawRecord = Record<string, unknown>
@@ -74,6 +75,11 @@ function readStoredWallets(): Wallet[] {
   } catch {
     return []
   }
+}
+
+function readStoredEngineState() {
+  if (typeof window === 'undefined') return false
+  return window.localStorage.getItem(ENGINE_STORAGE_KEY) === 'true'
 }
 
 function walletKey(wallet: Wallet) {
@@ -193,7 +199,7 @@ function WalletTable({ wallets, onCopy, copiedId }: { wallets: Wallet[]; onCopy:
 
 export default function App() {
   const [wallets, setWallets] = useState<Wallet[]>(readStoredWallets)
-  const [engineActive, setEngineActive] = useState(false)
+  const [engineActive, setEngineActive] = useState(readStoredEngineState)
   const [network, setNetworkState] = useState<Network>('BTC')
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -231,6 +237,7 @@ export default function App() {
         try {
           await setEngine(false)
           setEngineActive(false)
+          if (typeof window !== 'undefined') window.localStorage.setItem(ENGINE_STORAGE_KEY, 'false')
           addLog('ok', 'FOUND detected — POST /stop → 200 — engine stopped automatically')
           setNotice({ type: 'success', message: 'Carteira encontrada, armazenada e exibida. O motor foi parado automaticamente.' })
         } catch (error) {
@@ -253,7 +260,10 @@ export default function App() {
       const status = normalizeStatus(payload)
       if (!status) return
       if (status.attempts !== undefined) setCurrentAttempt(textValue(status.attempts))
-      if (typeof status.running === 'boolean') setEngineActive(status.running)
+      if (typeof status.running === 'boolean') {
+        setEngineActive(status.running)
+        if (typeof window !== 'undefined') window.localStorage.setItem(ENGINE_STORAGE_KEY, String(status.running))
+      }
       const nextNetwork = String(status.network ?? '').toUpperCase()
       if (nextNetwork === 'BTC' || nextNetwork === 'ETH') {
         setNetworkState(nextNetwork)
@@ -322,6 +332,7 @@ export default function App() {
     try {
       await setEngine(nextActive)
       setEngineActive(nextActive)
+      if (typeof window !== 'undefined') window.localStorage.setItem(ENGINE_STORAGE_KEY, String(nextActive))
       addLog('ok', `POST ${nextActive ? '/start' : '/stop'} → 200 — engine ${nextActive ? 'running' : 'stopped'}`)
       setNotice({ type: 'success', message: nextActive ? 'Motor iniciado pela API. Monitoramento real ativo a cada 10 segundos.' : 'Motor parado pela API. Atualização automática pausada.' })
       if (nextActive) void fetchWallets(true, true)
@@ -330,6 +341,7 @@ export default function App() {
       const routeUnavailable = message.includes('404') && (message.includes('/start') || message.includes('/stop'))
       if (routeUnavailable) {
         setEngineActive(nextActive)
+        if (typeof window !== 'undefined') window.localStorage.setItem(ENGINE_STORAGE_KEY, String(nextActive))
         addLog('warn', `POST ${nextActive ? '/start' : '/stop'} indisponível — usando monitoramento local`)
         if (nextActive) await fetchWallets(true)
         setNotice({ type: 'info', message: nextActive ? 'Monitoramento local ativo enquanto a rota do motor não responde.' : 'Monitoramento local pausado.' })
