@@ -69,9 +69,12 @@ function HomePage() {
   const [loadingWallets, setLoadingWallets] = useState(false);
   const [action, setAction] = useState<"start" | "stop" | "reset" | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const prevStatusRef = useRef<Status | null>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const soundEnabledRef = useRef(true);
 
   const PAGE_SIZE = 20;
 
@@ -83,6 +86,49 @@ function HomePage() {
     });
   }, []);
 
+  const unlockAudio = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const audioWindow = window as Window &
+      typeof globalThis & { webkitAudioContext?: typeof AudioContext };
+    const AudioContextConstructor = window.AudioContext ?? audioWindow.webkitAudioContext;
+    if (!AudioContextConstructor) return;
+    audioContextRef.current ??= new AudioContextConstructor();
+    void audioContextRef.current.resume();
+  }, []);
+
+  const playPositiveBalanceAlert = useCallback(() => {
+    if (!soundEnabledRef.current) return;
+    const context = audioContextRef.current;
+    if (!context || context.state !== "running") return;
+
+    const start = context.currentTime;
+    const gain = context.createGain();
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(0.85, start + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.35);
+    gain.connect(context.destination);
+
+    for (const [frequency, offset] of [
+      [880, 0],
+      [1174.66, 0.18],
+      [1567.98, 0.36],
+    ] as const) {
+      const oscillator = context.createOscillator();
+      oscillator.type = "square";
+      oscillator.frequency.setValueAtTime(frequency, start + offset);
+      oscillator.connect(gain);
+      oscillator.start(start + offset);
+      oscillator.stop(start + 1.35);
+    }
+  }, []);
+
+  const toggleSound = () => {
+    const nextEnabled = !soundEnabledRef.current;
+    soundEnabledRef.current = nextEnabled;
+    setSoundEnabled(nextEnabled);
+    if (nextEnabled) unlockAudio();
+  };
+
   // auto-scroll terminal
   useEffect(() => {
     const container = logsContainerRef.current;
@@ -92,7 +138,7 @@ function HomePage() {
   }, [logs]);
 
   // ── fetch found wallets ──
-  const fetchWallets = useCallback(async (page: number) => {
+  const fetchWallets = useCallback(async (page: number): Promise<FoundWallet[]> => {
     setLoadingWallets(true);
     try {
       const res = await fetch(`/api/found?page=${page}&limit=${PAGE_SIZE}`);
@@ -103,11 +149,14 @@ function HomePage() {
         const total = Array.isArray(data) ? data.length : Number(data.total ?? items.length);
         setWalletsTotal(Number.isFinite(total) ? total : items.length);
         setWallets(items);
+        setLoadingWallets(false);
+        return items;
       }
     } catch {
       // A API pode estar temporariamente indisponível; novas ações tentarão novamente.
     }
     setLoadingWallets(false);
+    return [];
   }, []);
 
   useEffect(() => {
@@ -169,7 +218,12 @@ function HomePage() {
                   "confirm",
                   `⚡ ${newConf} CARTEIRA${newConf > 1 ? "S" : ""} CONFIRMADA${newConf > 1 ? "S" : ""} COM SALDO!`,
                 );
-                void fetchWallets(1);
+                void fetchWallets(1).then((latestWallets) => {
+                  const hasPositiveBalance = latestWallets.some(
+                    (wallet) => Number(wallet.balance) > 0,
+                  );
+                  if (hasPositiveBalance) playPositiveBalanceAlert();
+                });
               }
 
               if (d.running && d.total > old.total) {
@@ -201,11 +255,12 @@ function HomePage() {
         // O EventSource já pode ter sido encerrado durante o unmount.
       }
     };
-  }, [addLog, fetchWallets]);
+  }, [addLog, fetchWallets, playPositiveBalanceAlert]);
 
   // ── control actions ──
   const run = async (a: "start" | "stop" | "reset") => {
     if (action) return;
+    unlockAudio();
     setAction(a);
     try {
       const res = await fetch(`/api/${a}`, { method: "POST" });
@@ -270,6 +325,19 @@ function HomePage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleSound}
+              aria-label={soundEnabled ? "Silenciar alerta de saldo" : "Ativar alerta de saldo"}
+              title={soundEnabled ? "Alerta sonoro ativado" : "Alerta sonoro silenciado"}
+              className={`rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${
+                soundEnabled
+                  ? "border-yellow-500/25 bg-yellow-500/10 text-yellow-300 hover:bg-yellow-500/20"
+                  : "border-white/10 bg-white/[0.03] text-slate-600 hover:text-slate-300"
+              }`}
+            >
+              {soundEnabled ? "🔔" : "🔕"}
+            </button>
             <span
               className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors ${
                 connected
