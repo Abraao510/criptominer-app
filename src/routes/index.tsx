@@ -28,6 +28,9 @@ type FoundWallet = {
   balance: number;
   network: string;
   private_key?: string | null;
+  timestamp?: string | number | null;
+  found_at?: string | number | null;
+  created_at?: string | number | null;
 };
 
 type Coin = "BTC" | "ETH" | "BSC" | "SOL";
@@ -89,6 +92,35 @@ function displayMnemonic(wallet: FoundWallet) {
 
 function walletCopyValue(wallet: FoundWallet) {
   return wallet.private_key?.trim() || wallet.mnemonic;
+}
+
+function walletDateValue(wallet: FoundWallet) {
+  const raw = wallet.timestamp ?? wallet.found_at ?? wallet.created_at;
+  if (raw == null || raw === "") return null;
+  const numeric = typeof raw === "number" || /^\d+$/.test(String(raw)) ? Number(raw) : NaN;
+  const date = Number.isFinite(numeric)
+    ? new Date(numeric < 1e12 ? numeric * 1000 : numeric)
+    : new Date(String(raw));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatWalletDate(wallet: FoundWallet) {
+  const date = walletDateValue(wallet);
+  return date
+    ? new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "medium",
+      }).format(date)
+    : "—";
+}
+
+function sortWalletsNewest(items: FoundWallet[]) {
+  return [...items].sort((a, b) => {
+    const aTime = walletDateValue(a)?.getTime();
+    const bTime = walletDateValue(b)?.getTime();
+    if (aTime == null || bTime == null) return 0;
+    return bTime - aTime;
+  });
 }
 
 function now() {
@@ -201,19 +233,25 @@ function HomePage() {
         const hasNewWallet =
           knownWalletsRef.current.size > 0 &&
           itemKeys.some((key) => !knownWalletsRef.current.has(key));
+        const newItems = items.filter(
+          (item) => !knownWalletsRef.current.has(`${item.address}|${item.mnemonic}`),
+        );
         if (hasNewWallet) setHomeWalletsVisible(true);
         knownWalletsRef.current = new Set([...knownWalletsRef.current, ...itemKeys]);
+        const orderedItems = sortWalletsNewest(
+          hasNewWallet ? [...newItems, ...items.filter((item) => !newItems.includes(item))] : items,
+        );
         setWalletsTotal(Number.isFinite(total) ? total : items.length);
-        setWallets(items);
+        setWallets(orderedItems);
         walletsLoadedRef.current = true;
         if (typeof window !== "undefined") {
           window.localStorage.setItem(
             FOUND_WALLETS_STORAGE_KEY,
-            JSON.stringify({ savedAt: new Date().toISOString(), total, items }),
+            JSON.stringify({ savedAt: new Date().toISOString(), total, items: orderedItems }),
           );
         }
         setLoadingWallets(false);
-        return items;
+        return orderedItems;
       }
     } catch {
       // A API pode estar temporariamente indisponível; novas ações tentarão novamente.
@@ -229,7 +267,8 @@ function HomePage() {
           window.localStorage.getItem(FOUND_WALLETS_STORAGE_KEY) ?? "null",
         ) as { total?: number; items?: FoundWallet[] } | null;
         if (cached && Array.isArray(cached.items)) {
-          setWallets(cached.items);
+          const orderedItems = sortWalletsNewest(cached.items);
+          setWallets(orderedItems);
           setWalletsTotal(Number(cached.total ?? cached.items.length));
           knownWalletsRef.current = new Set(
             cached.items.map((item) => `${item.address}|${item.mnemonic}`),
@@ -709,10 +748,11 @@ function HomePage() {
           ) : (
             <>
               <div className="max-h-96 overflow-auto">
-                <table className="w-full min-w-[760px] text-xs">
+                <table className="w-full min-w-[900px] text-xs">
                   <thead>
                     <tr className="text-slate-700 border-b border-white/[0.05]">
                       <th className="px-4 py-3 text-left font-normal">Rede</th>
+                      <th className="px-4 py-3 text-left font-normal">Encontrada em</th>
                       <th className="px-4 py-3 text-left font-normal">Tipo</th>
                       <th className="px-4 py-3 text-left font-normal">Mnemonic / frase</th>
                       <th className="px-4 py-3 text-left font-normal">Chave privada</th>
@@ -731,6 +771,9 @@ function HomePage() {
                           <span className="rounded border border-orange-400/20 bg-orange-400/8 px-2 py-0.5 text-orange-300">
                             {w.network}
                           </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                          {formatWalletDate(w)}
                         </td>
                         <td className="px-4 py-3 text-[10px] uppercase tracking-wide text-slate-500">
                           {isBrainwallet(w) ? "Brainwallet" : "BIP39"}
@@ -810,7 +853,7 @@ function HomePage() {
 
       {walletsOpen && (
         <div
-          className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto bg-black/75 px-4 py-8 backdrop-blur-sm"
+          className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto bg-black/75 px-0 py-0 backdrop-blur-sm sm:px-4 sm:py-8"
           role="presentation"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) setWalletsOpen(false);
@@ -820,7 +863,7 @@ function HomePage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="wallets-dialog-title"
-            className="w-full max-w-5xl overflow-hidden rounded-2xl border border-cyan-400/15 bg-[#0d1017] shadow-2xl shadow-black/50"
+            className="min-h-screen w-full max-w-5xl overflow-hidden border border-cyan-400/15 bg-[#0d1017] shadow-2xl shadow-black/50 sm:min-h-0 sm:rounded-2xl sm:shadow-black/50"
           >
             <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4">
               <div>
@@ -873,6 +916,7 @@ function HomePage() {
                       <thead className="sticky top-0 bg-[#111620] text-slate-600">
                         <tr>
                           <th className="px-4 py-3 text-left font-normal">Rede</th>
+                          <th className="px-4 py-3 text-left font-normal">Encontrada em</th>
                           <th className="px-4 py-3 text-left font-normal">Tipo</th>
                           <th className="px-4 py-3 text-left font-normal">Mnemonic / frase</th>
                           <th className="px-4 py-3 text-left font-normal">Chave privada</th>
@@ -888,6 +932,9 @@ function HomePage() {
                             className="hover:bg-white/[0.02]"
                           >
                             <td className="px-4 py-3 text-orange-300">{wallet.network || "—"}</td>
+                            <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                              {formatWalletDate(wallet)}
+                            </td>
                             <td className="px-4 py-3 text-[10px] uppercase tracking-wide text-slate-500">
                               {isBrainwallet(wallet) ? "Brainwallet" : "BIP39"}
                             </td>
