@@ -423,7 +423,8 @@ function HomePage() {
                     : "border-white/10 bg-white/[0.02] text-slate-500 hover:border-white/20 hover:text-slate-300"
                 }`}
               >
-                {networkAction === coin ? <Spinner /> : coin}
+                {networkAction === coin ? <Spinner /> : <CoinIcon coin={coin} />}
+                {coin}
               </button>
             ))}
             <button
@@ -700,6 +701,26 @@ function Spinner() {
         d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
       />
     </svg>
+  );
+}
+
+function CoinIcon({ coin }: { coin: Coin }) {
+  if (coin === "BTC")
+    return (
+      <span className="text-orange-300" aria-hidden="true">
+        ₿
+      </span>
+    );
+  if (coin === "ETH")
+    return (
+      <span className="text-indigo-300" aria-hidden="true">
+        ◆
+      </span>
+    );
+  return (
+    <span className="text-yellow-300" aria-hidden="true">
+      B
+    </span>
   );
 }
 
