@@ -56,11 +56,20 @@ function fmt(n: number | null | undefined) {
 function formatBalance(balance: unknown, network: string) {
   const n = Number(balance);
   if (!Number.isFinite(n)) return "—";
-  const coin = network.toUpperCase();
-  if (coin === "BTC") return n === 0 ? "0 BTC" : `${(n / 1e8).toFixed(8)} BTC`;
-  if (coin === "ETH") return n === 0 ? "0 ETH" : `${(n / 1e18).toFixed(8)} ETH`;
-  if (coin === "BSC") return n === 0 ? "0 BNB" : `${(n / 1e18).toFixed(8)} BNB`;
-  return `${n} ${coin}`;
+  const coin = network.trim().toUpperCase();
+
+  switch (coin) {
+    case "BTC":
+      return `${(n / 1e8).toFixed(8)} BTC`;
+    case "ETH":
+      return `${(n / 1e18).toFixed(18)} ETH`;
+    case "BSC":
+      return `${(n / 1e18).toFixed(18)} BNB`;
+    case "SOL":
+      return `${(n / 1e9).toFixed(9)} SOL`;
+    default:
+      return `${n} ${coin}`;
+  }
 }
 
 function isBrainwallet(wallet: FoundWallet) {
