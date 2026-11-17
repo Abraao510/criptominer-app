@@ -30,6 +30,8 @@ type FoundWallet = {
 
 type Coin = "BTC" | "ETH" | "BSC";
 
+const FOUND_WALLETS_STORAGE_KEY = "bip39-quantum-brute:found-wallets";
+
 type LogEntry = {
   id: string;
   ts: string;
@@ -85,6 +87,7 @@ function HomePage() {
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const soundEnabledRef = useRef(true);
+  const walletsLoadedRef = useRef(false);
 
   const PAGE_SIZE = 20;
 
@@ -149,7 +152,7 @@ function HomePage() {
 
   // ── fetch found wallets ──
   const fetchWallets = useCallback(async (page: number): Promise<FoundWallet[]> => {
-    setLoadingWallets(true);
+    if (!walletsLoadedRef.current) setLoadingWallets(true);
     try {
       const res = await fetch(`/api/found?page=${page}&limit=${PAGE_SIZE}`);
       if (res.ok) {
@@ -159,6 +162,13 @@ function HomePage() {
         const total = Array.isArray(data) ? data.length : Number(data.total ?? items.length);
         setWalletsTotal(Number.isFinite(total) ? total : items.length);
         setWallets(items);
+        walletsLoadedRef.current = true;
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(
+            FOUND_WALLETS_STORAGE_KEY,
+            JSON.stringify({ savedAt: new Date().toISOString(), total, items }),
+          );
+        }
         setLoadingWallets(false);
         return items;
       }
@@ -170,6 +180,20 @@ function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = JSON.parse(
+          window.localStorage.getItem(FOUND_WALLETS_STORAGE_KEY) ?? "null",
+        ) as { total?: number; items?: FoundWallet[] } | null;
+        if (cached && Array.isArray(cached.items)) {
+          setWallets(cached.items);
+          setWalletsTotal(Number(cached.total ?? cached.items.length));
+          walletsLoadedRef.current = true;
+        }
+      } catch {
+        window.localStorage.removeItem(FOUND_WALLETS_STORAGE_KEY);
+      }
+    }
     void fetchWallets(1);
   }, [fetchWallets]);
 
