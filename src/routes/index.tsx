@@ -13,6 +13,7 @@ export const Route = createFileRoute("/")({
 type Status = {
   running: boolean;
   network: string;
+  active_network?: string;
   total: number;
   targets_loaded: number;
   bloom_hits: number;
@@ -31,6 +32,11 @@ type FoundWallet = {
 type Coin = "BTC" | "ETH" | "BSC";
 
 const FOUND_WALLETS_STORAGE_KEY = "bip39-quantum-brute:found-wallets";
+
+function asCoin(value: unknown): Coin | null {
+  const normalized = String(value ?? "").toUpperCase();
+  return normalized === "BTC" || normalized === "ETH" || normalized === "BSC" ? normalized : null;
+}
 
 type LogEntry = {
   id: string;
@@ -219,6 +225,8 @@ function HomePage() {
       src.addEventListener("status", (e: MessageEvent) => {
         try {
           const d = JSON.parse(e.data) as Status;
+          const activeCoin = asCoin(d.active_network ?? d.network);
+          if (activeCoin) setSelectedCoin(activeCoin);
           setConnected(true);
           setStatus((prev) => {
             const old = prev;
