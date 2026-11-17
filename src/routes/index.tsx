@@ -119,6 +119,9 @@ function formatWalletDate(wallet: FoundWallet) {
 }
 
 function sortWalletsNewest(items: FoundWallet[]) {
+  const datedItems = items.some((item) => walletDateValue(item) != null);
+  if (!datedItems) return [...items].reverse();
+
   return [...items].sort((a, b) => {
     const aTime = walletDateValue(a)?.getTime();
     const bTime = walletDateValue(b)?.getTime();
@@ -240,9 +243,10 @@ function HomePage() {
         const newItems = items.filter((item) => !knownWalletsRef.current.has(walletKey(item)));
         if (hasNewWallet) setHomeWalletsVisible(true);
         knownWalletsRef.current = new Set([...knownWalletsRef.current, ...itemKeys]);
-        const orderedItems = sortWalletsNewest(
-          hasNewWallet ? [...newItems, ...items.filter((item) => !newItems.includes(item))] : items,
-        );
+        const existingItems = items.filter((item) => !newItems.includes(item));
+        const orderedItems = hasNewWallet
+          ? [...newItems.reverse(), ...existingItems.reverse()]
+          : sortWalletsNewest(items);
         setWalletsTotal(Number.isFinite(total) ? total : items.length);
         setWallets(orderedItems);
         walletsLoadedRef.current = true;
@@ -269,8 +273,7 @@ function HomePage() {
           window.localStorage.getItem(FOUND_WALLETS_STORAGE_KEY) ?? "null",
         ) as { total?: number; items?: FoundWallet[] } | null;
         if (cached && Array.isArray(cached.items)) {
-          const orderedItems = sortWalletsNewest(cached.items);
-          setWallets(orderedItems);
+          setWallets(cached.items);
           setWalletsTotal(Number(cached.total ?? cached.items.length));
           knownWalletsRef.current = new Set(cached.items.map(walletKey));
           walletsLoadedRef.current = true;
