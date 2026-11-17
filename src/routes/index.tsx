@@ -28,6 +28,8 @@ type FoundWallet = {
   network: string;
 };
 
+type Coin = "BTC" | "ETH" | "BSC";
+
 type LogEntry = {
   id: string;
   ts: string;
@@ -42,10 +44,14 @@ function fmt(n: number | null | undefined) {
   return new Intl.NumberFormat("pt-BR").format(n);
 }
 
-function satsToBtc(sats: unknown) {
-  const n = Number(sats);
+function formatBalance(balance: unknown, network: string) {
+  const n = Number(balance);
   if (!Number.isFinite(n)) return "—";
-  return n === 0 ? "0 BTC" : `${(n / 1e8).toFixed(8)} BTC`;
+  const coin = network.toUpperCase();
+  if (coin === "BTC") return n === 0 ? "0 BTC" : `${(n / 1e8).toFixed(8)} BTC`;
+  if (coin === "ETH") return n === 0 ? "0 ETH" : `${(n / 1e18).toFixed(8)} ETH`;
+  if (coin === "BSC") return n === 0 ? "0 BNB" : `${(n / 1e18).toFixed(8)} BNB`;
+  return `${n} ${coin}`;
 }
 
 function now() {
@@ -71,6 +77,8 @@ function HomePage() {
   const [action, setAction] = useState<"start" | "stop" | "reset" | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [selectedCoin, setSelectedCoin] = useState<Coin>("BTC");
+  const [networkAction, setNetworkAction] = useState<Coin | null>(null);
 
   const prevStatusRef = useRef<Status | null>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
@@ -279,6 +287,28 @@ function HomePage() {
     setAction(null);
   };
 
+  const selectCoin = async (coin: Coin) => {
+    if (networkAction || coin === selectedCoin) return;
+    setNetworkAction(coin);
+    try {
+      const res = await fetch("/api/set_network", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode: coin }),
+      });
+      if (res.ok) {
+        setSelectedCoin(coin);
+        addLog("info", `Rede alterada para ${coin}`);
+        void fetchWallets(1);
+      } else {
+        addLog("error", `Falha ao selecionar a rede ${coin}`);
+      }
+    } catch {
+      addLog("error", `Erro de rede ao selecionar ${coin}`);
+    }
+    setNetworkAction(null);
+  };
+
   const copy = async (address: string) => {
     try {
       await navigator.clipboard.writeText(address);
@@ -378,7 +408,24 @@ function HomePage() {
             </div>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="mr-1 text-[10px] uppercase tracking-widest text-slate-600">Rede</span>
+            {(["BTC", "ETH", "BSC"] as const).map((coin) => (
+              <button
+                key={coin}
+                type="button"
+                onClick={() => void selectCoin(coin)}
+                disabled={networkAction !== null || action !== null}
+                aria-pressed={selectedCoin === coin}
+                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-all disabled:opacity-40 ${
+                  selectedCoin === coin
+                    ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-300"
+                    : "border-white/10 bg-white/[0.02] text-slate-500 hover:border-white/20 hover:text-slate-300"
+                }`}
+              >
+                {networkAction === coin ? <Spinner /> : coin}
+              </button>
+            ))}
             <button
               onClick={() => void run("start")}
               disabled={action !== null || running}
@@ -584,7 +631,7 @@ function HomePage() {
                           {w.address}
                         </td>
                         <td className="px-4 py-3 text-emerald-400 font-semibold">
-                          {satsToBtc(w.balance)}
+                          {formatBalance(w.balance, w.network || selectedCoin)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
