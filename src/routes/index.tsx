@@ -30,13 +30,18 @@ type FoundWallet = {
   private_key?: string | null;
 };
 
-type Coin = "BTC" | "ETH" | "BSC";
+type Coin = "BTC" | "ETH" | "BSC" | "SOL";
 
 const FOUND_WALLETS_STORAGE_KEY = "bip39-quantum-brute:found-wallets";
 
 function asCoin(value: unknown): Coin | null {
   const normalized = String(value ?? "").toUpperCase();
-  return normalized === "BTC" || normalized === "ETH" || normalized === "BSC" ? normalized : null;
+  return normalized === "BTC" ||
+    normalized === "ETH" ||
+    normalized === "BSC" ||
+    normalized === "SOL"
+    ? normalized
+    : null;
 }
 
 type LogEntry = {
@@ -484,7 +489,7 @@ function HomePage() {
 
           <div className="flex items-center gap-2 flex-wrap">
             <span className="mr-1 text-[10px] uppercase tracking-widest text-slate-600">Rede</span>
-            {(["BTC", "ETH", "BSC"] as const).map((coin) => (
+            {(["BTC", "ETH", "BSC", "SOL"] as const).map((coin) => (
               <button
                 key={coin}
                 type="button"
@@ -973,6 +978,17 @@ function CoinIcon({ coin }: { coin: Coin }) {
         <circle cx="12" cy="12" r="10" fill="#627EEA" />
         <path fill="#fff" d="m12 4.5-4.2 7.1L12 14l4.2-2.4L12 4.5Z" />
         <path fill="#fff" fillOpacity=".7" d="M7.8 12.4 12 19.5l4.2-7.1-4.2 2.4-4.2-2.4Z" />
+      </svg>
+    );
+  }
+  if (coin === "SOL") {
+    return (
+      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="#9945FF" />
+        <path
+          fill="#fff"
+          d="M7 8.1c.2-.4.6-.6 1-.6h9c.5 0 .7.6.4.9l-1.4 1.4c-.2.2-.5.3-.8.3H6.2c-.5 0-.7-.6-.4-.9L7 8.1Zm0 4.3c.2-.4.6-.6 1-.6h9c.5 0 .7.6.4.9L16 14.1c-.2.2-.5.3-.8.3H6.2c-.5 0-.7-.6-.4-.9l1.2-1.1Zm0 4.3c.2-.4.6-.6 1-.6h9c.5 0 .7.6.4.9L16 18.4c-.2.2-.5.3-.8.3H6.2c-.5 0-.7-.6-.4-.9L7 16.7Z"
+        />
       </svg>
     );
   }
