@@ -94,6 +94,10 @@ function walletCopyValue(wallet: FoundWallet) {
   return wallet.private_key?.trim() || wallet.mnemonic;
 }
 
+function walletKey(wallet: FoundWallet) {
+  return [wallet.network, wallet.address, wallet.mnemonic, wallet.private_key ?? ""].join("|");
+}
+
 function walletDateValue(wallet: FoundWallet) {
   const raw = wallet.timestamp ?? wallet.found_at ?? wallet.created_at;
   if (raw == null || raw === "") return null;
@@ -229,13 +233,11 @@ function HomePage() {
           { total?: number; items?: FoundWallet[] } | FoundWallet[];
         const items = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
         const total = Array.isArray(data) ? data.length : Number(data.total ?? items.length);
-        const itemKeys = items.map((item) => `${item.address}|${item.mnemonic}`);
+        const itemKeys = items.map(walletKey);
         const hasNewWallet =
           knownWalletsRef.current.size > 0 &&
           itemKeys.some((key) => !knownWalletsRef.current.has(key));
-        const newItems = items.filter(
-          (item) => !knownWalletsRef.current.has(`${item.address}|${item.mnemonic}`),
-        );
+        const newItems = items.filter((item) => !knownWalletsRef.current.has(walletKey(item)));
         if (hasNewWallet) setHomeWalletsVisible(true);
         knownWalletsRef.current = new Set([...knownWalletsRef.current, ...itemKeys]);
         const orderedItems = sortWalletsNewest(
@@ -270,9 +272,7 @@ function HomePage() {
           const orderedItems = sortWalletsNewest(cached.items);
           setWallets(orderedItems);
           setWalletsTotal(Number(cached.total ?? cached.items.length));
-          knownWalletsRef.current = new Set(
-            cached.items.map((item) => `${item.address}|${item.mnemonic}`),
-          );
+          knownWalletsRef.current = new Set(cached.items.map(walletKey));
           walletsLoadedRef.current = true;
         }
       } catch {
