@@ -417,7 +417,7 @@ function HomePage() {
                 onClick={() => void selectCoin(coin)}
                 disabled={networkAction !== null || action !== null}
                 aria-pressed={selectedCoin === coin}
-                className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-all disabled:opacity-40 ${
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-all disabled:opacity-40 ${
                   selectedCoin === coin
                     ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-300"
                     : "border-white/10 bg-white/[0.02] text-slate-500 hover:border-white/20 hover:text-slate-300"
@@ -705,22 +705,34 @@ function Spinner() {
 }
 
 function CoinIcon({ coin }: { coin: Coin }) {
-  if (coin === "BTC")
+  if (coin === "BTC") {
     return (
-      <span className="text-orange-300" aria-hidden="true">
-        ₿
-      </span>
+      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="#F7931A" />
+        <path
+          fill="#fff"
+          d="M15.6 10.1c.2-1.4-.9-2.2-2.5-2.7l.5-2-1.2-.3-.5 1.9-1-.2.5-1.9-1.2-.3-.5 2-2.4-.6-.3 1.3s.9.2.9.2c.5.1.6.4.6.7l-1.4 5.6c-.1.2-.3.5-.7.4l-.9-.2-.4 1.4 2.4.6-.5 2 1.2.3.5-2 1 .3-.5 2 1.2.3.5-2c2 .4 3.5.2 4.1-1.6.5-1.5 0-2.4-1-3 .7-.2 1.2-.8 1.3-1.8Zm-2.2 3.1c-.3 1.4-2.6.7-3.4.5l.6-2.5c.8.2 3.1.6 2.8 2Zm.4-3.2c-.3 1.3-2.2.7-2.9.5l.5-2.2c.7.2 2.7.4 2.4 1.7Z"
+        />
+      </svg>
     );
-  if (coin === "ETH")
+  }
+  if (coin === "ETH") {
     return (
-      <span className="text-indigo-300" aria-hidden="true">
-        ◆
-      </span>
+      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" fill="#627EEA" />
+        <path fill="#fff" d="m12 4.5-4.2 7.1L12 14l4.2-2.4L12 4.5Z" />
+        <path fill="#fff" fillOpacity=".7" d="M7.8 12.4 12 19.5l4.2-7.1-4.2 2.4-4.2-2.4Z" />
+      </svg>
     );
+  }
   return (
-    <span className="text-yellow-300" aria-hidden="true">
-      B
-    </span>
+    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="#F0B90B" d="m12 2.2 8.5 4.9v9.8L12 21.8l-8.5-4.9V7.1L12 2.2Z" />
+      <path
+        fill="#fff"
+        d="M12 6.1 9.8 8.3l2.2 2.2 2.2-2.2L12 6.1Zm-3.2 3.2L6.6 11.5l2.2 2.2 2.2-2.2-2.2-2.2Zm6.4 0L13 11.5l2.2 2.2 2.2-2.2-2.2-2.2ZM12 13.8l-2.2 2.2 2.2 2.2 2.2-2.2-2.2-2.2Z"
+      />
+    </svg>
   );
 }
 
