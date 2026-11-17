@@ -165,7 +165,7 @@ function HomePage() {
   const walletsLoadedRef = useRef(false);
   const knownWalletsRef = useRef(new Set<string>());
 
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 50;
 
   // ── log helper ──
   const addLog = useCallback((kind: LogEntry["kind"], text: string) => {
@@ -614,6 +614,25 @@ function HomePage() {
           />
         </div>
 
+        <div className="rounded-xl border border-white/[0.07] bg-[#0d1017] px-4 py-3">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-widest text-slate-600">
+              Etapas do processamento
+            </p>
+            <span className="text-[10px] text-slate-700">atualizado via SSE</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-0">
+            <PipelineStep label="Candidatos" value={fmt(status?.total)} active={running} />
+            <PipelineStep label="Bloom hits" value={fmt(status?.bloom_hits)} active={running} />
+            <PipelineStep label="Consultas API" value={fmt(status?.api_checks)} active={running} />
+            <PipelineStep
+              label="Confirmados"
+              value={fmt(status?.confirmed)}
+              active={Boolean(status?.confirmed)}
+            />
+          </div>
+        </div>
+
         {/* ─── TWO COLUMN LAYOUT ───────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
           {/* TERMINAL LOG */}
@@ -866,7 +885,7 @@ function HomePage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="wallets-dialog-title"
-            className="min-h-screen w-full max-w-5xl overflow-hidden border border-cyan-400/15 bg-[#0d1017] shadow-2xl shadow-black/50 sm:min-h-0 sm:rounded-2xl sm:shadow-black/50"
+            className="min-h-screen w-full overflow-hidden border border-cyan-400/15 bg-[#0d1017] shadow-2xl shadow-black/50"
           >
             <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4">
               <div>
@@ -899,7 +918,7 @@ function HomePage() {
               </div>
             </div>
 
-            <div className="grid gap-4 p-5 lg:grid-cols-[1fr_280px]">
+            <div className="grid gap-4 p-4 sm:p-6 lg:grid-cols-[minmax(0,1fr)_320px]">
               <div className="overflow-hidden rounded-xl border border-white/[0.07]">
                 <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
                   <span className="text-xs uppercase tracking-widest text-slate-500">
@@ -914,75 +933,109 @@ function HomePage() {
                     Nenhuma carteira retornada pela API.
                   </div>
                 ) : (
-                  <div className="max-h-[58vh] space-y-2 overflow-y-auto p-3 sm:p-4">
-                    {wallets.map((wallet, index) => (
-                      <article
-                        key={`${wallet.address}-${wallet.mnemonic}-${index}`}
-                        className="rounded-xl border border-white/[0.07] bg-[#111620] p-3 transition-colors hover:border-cyan-400/20"
-                      >
-                        <div className="mb-3 flex flex-wrap items-center gap-2">
-                          <span className="rounded-md border border-orange-400/20 bg-orange-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-orange-300">
-                            {wallet.network || "—"}
-                          </span>
-                          <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] uppercase tracking-wider text-slate-500">
-                            {isBrainwallet(wallet) ? "Brainwallet" : "BIP39"}
-                          </span>
-                          <span className="ml-auto text-[11px] text-slate-600">
-                            {formatWalletDate(wallet)}
-                          </span>
-                          <strong className="text-sm font-semibold text-emerald-400">
-                            {formatBalance(wallet.balance, wallet.network || selectedCoin)}
-                          </strong>
-                        </div>
+                  <>
+                    <div className="max-h-[58vh] space-y-2 overflow-y-auto p-3 sm:p-4">
+                      {wallets.map((wallet, index) => (
+                        <article
+                          key={`${wallet.address}-${wallet.mnemonic}-${index}`}
+                          className="rounded-xl border border-white/[0.07] bg-[#111620] p-3 transition-colors hover:border-cyan-400/20"
+                        >
+                          <div className="mb-3 flex flex-wrap items-center gap-2">
+                            <span className="rounded-md border border-orange-400/20 bg-orange-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-orange-300">
+                              {wallet.network || "—"}
+                            </span>
+                            <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] uppercase tracking-wider text-slate-500">
+                              {isBrainwallet(wallet) ? "Brainwallet" : "BIP39"}
+                            </span>
+                            <span className="ml-auto text-[11px] text-slate-600">
+                              {formatWalletDate(wallet)}
+                            </span>
+                            <strong className="text-sm font-semibold text-emerald-400">
+                              {formatBalance(wallet.balance, wallet.network || selectedCoin)}
+                            </strong>
+                          </div>
 
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="min-w-0">
-                            <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-600">
-                              {isBrainwallet(wallet) ? "Frase brainwallet" : "Mnemonic BIP39"}
-                            </p>
-                            <code
-                              className="block max-h-16 overflow-y-auto whitespace-normal break-words rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-xs leading-5 text-slate-300"
-                              title={wallet.mnemonic}
-                            >
-                              {displayMnemonic(wallet) || "—"}
-                            </code>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="min-w-0">
+                              <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-600">
+                                {isBrainwallet(wallet) ? "Frase brainwallet" : "Mnemonic BIP39"}
+                              </p>
+                              <code
+                                className="block max-h-16 overflow-y-auto whitespace-normal break-words rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-xs leading-5 text-slate-300"
+                                title={wallet.mnemonic}
+                              >
+                                {displayMnemonic(wallet) || "—"}
+                              </code>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-600">
+                                Chave privada
+                              </p>
+                              <code
+                                className="block overflow-x-auto whitespace-nowrap rounded-lg border border-violet-400/10 bg-violet-400/[0.04] px-3 py-2 text-xs text-violet-300"
+                                title={wallet.private_key ?? undefined}
+                              >
+                                {wallet.private_key || "Não informada para este achado"}
+                              </code>
+                            </div>
+                            <div className="min-w-0 sm:col-span-2">
+                              <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-600">
+                                Endereço
+                              </p>
+                              <code
+                                className="block overflow-x-auto whitespace-nowrap rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-[11px] text-slate-500"
+                                title={wallet.address}
+                              >
+                                {wallet.address || "—"}
+                              </code>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-600">
-                              Chave privada
-                            </p>
-                            <code
-                              className="block overflow-x-auto whitespace-nowrap rounded-lg border border-violet-400/10 bg-violet-400/[0.04] px-3 py-2 text-xs text-violet-300"
-                              title={wallet.private_key ?? undefined}
-                            >
-                              {wallet.private_key || "Não informada para este achado"}
-                            </code>
-                          </div>
-                          <div className="min-w-0 sm:col-span-2">
-                            <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-600">
-                              Endereço
-                            </p>
-                            <code
-                              className="block overflow-x-auto whitespace-nowrap rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-[11px] text-slate-500"
-                              title={wallet.address}
-                            >
-                              {wallet.address || "—"}
-                            </code>
-                          </div>
-                        </div>
 
-                        <div className="mt-3 flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => void copy(walletCopyValue(wallet))}
-                            className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-xs text-cyan-300 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
-                          >
-                            {copied === walletCopyValue(wallet) ? "✓ Copiado" : "Copiar segredo"}
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
+                          <div className="mt-3 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => void copy(walletCopyValue(wallet))}
+                              className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-xs text-cyan-300 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+                            >
+                              {copied === walletCopyValue(wallet) ? "✓ Copiado" : "Copiar segredo"}
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-between border-t border-white/[0.06] px-4 py-3 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const page = walletsPage - 1;
+                            setWalletsPage(page);
+                            void fetchWallets(page);
+                          }}
+                          disabled={walletsPage <= 1 || loadingWallets}
+                          className="rounded-lg border border-white/10 px-3 py-1.5 text-slate-500 transition-colors hover:border-cyan-400/30 hover:text-cyan-300 disabled:opacity-30"
+                        >
+                          ← Anteriores
+                        </button>
+                        <span className="text-slate-600">
+                          Página <strong className="text-slate-300">{walletsPage}</strong> de{" "}
+                          {totalPages}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const page = walletsPage + 1;
+                            setWalletsPage(page);
+                            void fetchWallets(page);
+                          }}
+                          disabled={walletsPage >= totalPages || loadingWallets}
+                          className="rounded-lg border border-white/10 px-3 py-1.5 text-slate-500 transition-colors hover:border-cyan-400/30 hover:text-cyan-300 disabled:opacity-30"
+                        >
+                          Próximas →
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -1110,6 +1163,22 @@ function MetricCard({
         <span className="text-base opacity-50">{icon}</span>
       </div>
       <p className={`text-2xl font-semibold mt-2 tracking-tight ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+function PipelineStep({ label, value, active }: { label: string; value: string; active: boolean }) {
+  return (
+    <div className="relative flex items-center gap-2 border-white/[0.06] px-2 py-1.5 first:pl-0 lg:border-r lg:px-4 lg:last:border-r-0">
+      <span
+        className={`h-2 w-2 shrink-0 rounded-full ${active ? "bg-cyan-400 shadow-[0_0_8px_#22d3ee]" : "bg-slate-700"}`}
+      />
+      <div className="min-w-0">
+        <p className="truncate text-[10px] uppercase tracking-wider text-slate-600">{label}</p>
+        <p className={`text-sm font-semibold ${active ? "text-slate-200" : "text-slate-600"}`}>
+          {value}
+        </p>
+      </div>
     </div>
   );
 }
