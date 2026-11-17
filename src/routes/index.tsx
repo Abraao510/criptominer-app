@@ -779,13 +779,13 @@ function HomePage() {
                           {isBrainwallet(w) ? "Brainwallet" : "BIP39"}
                         </td>
                         <td
-                          className="max-w-[220px] whitespace-normal break-words px-4 py-3 text-slate-400"
+                          className="max-w-[210px] truncate whitespace-nowrap px-4 py-3 text-slate-400"
                           title={w.mnemonic}
                         >
                           {displayMnemonic(w)}
                         </td>
                         <td
-                          className="max-w-[190px] break-all px-4 py-3 text-violet-300"
+                          className="max-w-[180px] truncate whitespace-nowrap px-4 py-3 text-violet-300"
                           title={w.private_key ?? undefined}
                         >
                           {w.private_key || "—"}
@@ -911,67 +911,74 @@ function HomePage() {
                     Nenhuma carteira retornada pela API.
                   </div>
                 ) : (
-                  <div className="max-h-[55vh] overflow-auto">
-                    <table className="w-full min-w-[900px] text-xs">
-                      <thead className="sticky top-0 bg-[#111620] text-slate-600">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-normal">Rede</th>
-                          <th className="px-4 py-3 text-left font-normal">Encontrada em</th>
-                          <th className="px-4 py-3 text-left font-normal">Tipo</th>
-                          <th className="px-4 py-3 text-left font-normal">Mnemonic / frase</th>
-                          <th className="px-4 py-3 text-left font-normal">Chave privada</th>
-                          <th className="px-4 py-3 text-left font-normal">Endereço</th>
-                          <th className="px-4 py-3 text-left font-normal">Saldo</th>
-                          <th className="px-4 py-3" />
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/[0.04]">
-                        {wallets.map((wallet, index) => (
-                          <tr
-                            key={`${wallet.address}-${wallet.mnemonic}-${index}`}
-                            className="hover:bg-white/[0.02]"
-                          >
-                            <td className="px-4 py-3 text-orange-300">{wallet.network || "—"}</td>
-                            <td className="whitespace-nowrap px-4 py-3 text-slate-500">
-                              {formatWalletDate(wallet)}
-                            </td>
-                            <td className="px-4 py-3 text-[10px] uppercase tracking-wide text-slate-500">
-                              {isBrainwallet(wallet) ? "Brainwallet" : "BIP39"}
-                            </td>
-                            <td
-                              className="max-w-[210px] whitespace-normal break-words px-4 py-3 text-slate-300"
+                  <div className="max-h-[58vh] space-y-2 overflow-y-auto p-3 sm:p-4">
+                    {wallets.map((wallet, index) => (
+                      <article
+                        key={`${wallet.address}-${wallet.mnemonic}-${index}`}
+                        className="rounded-xl border border-white/[0.07] bg-[#111620] p-3 transition-colors hover:border-cyan-400/20"
+                      >
+                        <div className="mb-3 flex flex-wrap items-center gap-2">
+                          <span className="rounded-md border border-orange-400/20 bg-orange-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-orange-300">
+                            {wallet.network || "—"}
+                          </span>
+                          <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-1 text-[10px] uppercase tracking-wider text-slate-500">
+                            {isBrainwallet(wallet) ? "Brainwallet" : "BIP39"}
+                          </span>
+                          <span className="ml-auto text-[11px] text-slate-600">
+                            {formatWalletDate(wallet)}
+                          </span>
+                          <strong className="text-sm font-semibold text-emerald-400">
+                            {formatBalance(wallet.balance, wallet.network || selectedCoin)}
+                          </strong>
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="min-w-0">
+                            <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-600">
+                              {isBrainwallet(wallet) ? "Frase brainwallet" : "Mnemonic BIP39"}
+                            </p>
+                            <code
+                              className="block max-h-16 overflow-y-auto whitespace-normal break-words rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-xs leading-5 text-slate-300"
                               title={wallet.mnemonic}
                             >
                               {displayMnemonic(wallet) || "—"}
-                            </td>
-                            <td
-                              className="max-w-[190px] break-all px-4 py-3 text-violet-300"
+                            </code>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-600">
+                              Chave privada
+                            </p>
+                            <code
+                              className="block overflow-x-auto whitespace-nowrap rounded-lg border border-violet-400/10 bg-violet-400/[0.04] px-3 py-2 text-xs text-violet-300"
                               title={wallet.private_key ?? undefined}
                             >
-                              {wallet.private_key || "—"}
-                            </td>
-                            <td
-                              className="max-w-[190px] truncate px-4 py-3 text-slate-500"
+                              {wallet.private_key || "Não informada para este achado"}
+                            </code>
+                          </div>
+                          <div className="min-w-0 sm:col-span-2">
+                            <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-600">
+                              Endereço
+                            </p>
+                            <code
+                              className="block overflow-x-auto whitespace-nowrap rounded-lg border border-white/[0.06] bg-black/20 px-3 py-2 text-[11px] text-slate-500"
                               title={wallet.address}
                             >
                               {wallet.address || "—"}
-                            </td>
-                            <td className="px-4 py-3 font-semibold text-emerald-400">
-                              {formatBalance(wallet.balance, wallet.network || selectedCoin)}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <button
-                                type="button"
-                                onClick={() => void copy(walletCopyValue(wallet))}
-                                className="rounded border border-white/10 px-2 py-1 text-slate-500 hover:border-cyan-400/25 hover:text-cyan-300"
-                              >
-                                {copied === walletCopyValue(wallet) ? "Copiado" : "Copiar segredo"}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </code>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => void copy(walletCopyValue(wallet))}
+                            className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-xs text-cyan-300 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+                          >
+                            {copied === walletCopyValue(wallet) ? "✓ Copiado" : "Copiar segredo"}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
                   </div>
                 )}
               </div>
