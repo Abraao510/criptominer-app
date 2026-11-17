@@ -27,6 +27,7 @@ type FoundWallet = {
   address: string;
   balance: number;
   network: string;
+  private_key?: string | null;
 };
 
 type Coin = "BTC" | "ETH" | "BSC";
@@ -60,6 +61,20 @@ function formatBalance(balance: unknown, network: string) {
   if (coin === "ETH") return n === 0 ? "0 ETH" : `${(n / 1e18).toFixed(8)} ETH`;
   if (coin === "BSC") return n === 0 ? "0 BNB" : `${(n / 1e18).toFixed(8)} BNB`;
   return `${n} ${coin}`;
+}
+
+function isBrainwallet(wallet: FoundWallet) {
+  return wallet.mnemonic.trimStart().toUpperCase().startsWith("BW:");
+}
+
+function displayMnemonic(wallet: FoundWallet) {
+  return isBrainwallet(wallet)
+    ? wallet.mnemonic.trimStart().replace(/^BW:\s*/i, "")
+    : wallet.mnemonic;
+}
+
+function walletCopyValue(wallet: FoundWallet) {
+  return wallet.private_key?.trim() || wallet.mnemonic;
 }
 
 function now() {
@@ -648,11 +663,13 @@ function HomePage() {
           ) : (
             <>
               <div className="max-h-96 overflow-auto">
-                <table className="w-full min-w-[600px] text-xs">
+                <table className="w-full min-w-[760px] text-xs">
                   <thead>
                     <tr className="text-slate-700 border-b border-white/[0.05]">
                       <th className="px-4 py-3 text-left font-normal">Rede</th>
-                      <th className="px-4 py-3 text-left font-normal">Mnemonic</th>
+                      <th className="px-4 py-3 text-left font-normal">Tipo</th>
+                      <th className="px-4 py-3 text-left font-normal">Mnemonic / frase</th>
+                      <th className="px-4 py-3 text-left font-normal">Chave privada</th>
                       <th className="px-4 py-3 text-left font-normal">Endereço</th>
                       <th className="px-4 py-3 text-left font-normal">Saldo</th>
                       <th className="px-4 py-3" />
@@ -669,11 +686,20 @@ function HomePage() {
                             {w.network}
                           </span>
                         </td>
+                        <td className="px-4 py-3 text-[10px] uppercase tracking-wide text-slate-500">
+                          {isBrainwallet(w) ? "Brainwallet" : "BIP39"}
+                        </td>
                         <td
-                          className="px-4 py-3 text-slate-400 max-w-[200px] truncate"
+                          className="max-w-[220px] whitespace-normal break-words px-4 py-3 text-slate-400"
                           title={w.mnemonic}
                         >
-                          {w.mnemonic}
+                          {displayMnemonic(w)}
+                        </td>
+                        <td
+                          className="max-w-[190px] break-all px-4 py-3 text-violet-300"
+                          title={w.private_key ?? undefined}
+                        >
+                          {w.private_key || "—"}
                         </td>
                         <td
                           className="px-4 py-3 text-slate-500 max-w-[180px] truncate"
@@ -686,10 +712,10 @@ function HomePage() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
-                            onClick={() => void copy(w.mnemonic)}
+                            onClick={() => void copy(walletCopyValue(w))}
                             className="rounded border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-500 hover:text-cyan-400 hover:border-cyan-400/25 transition-colors"
                           >
-                            {copied === w.mnemonic ? "✓ Copiado" : "Copiar"}
+                            {copied === walletCopyValue(w) ? "✓ Copiado" : "Copiar segredo"}
                           </button>
                         </td>
                       </tr>
@@ -797,11 +823,13 @@ function HomePage() {
                   </div>
                 ) : (
                   <div className="max-h-[55vh] overflow-auto">
-                    <table className="w-full min-w-[650px] text-xs">
+                    <table className="w-full min-w-[900px] text-xs">
                       <thead className="sticky top-0 bg-[#111620] text-slate-600">
                         <tr>
                           <th className="px-4 py-3 text-left font-normal">Rede</th>
-                          <th className="px-4 py-3 text-left font-normal">Mnemonic</th>
+                          <th className="px-4 py-3 text-left font-normal">Tipo</th>
+                          <th className="px-4 py-3 text-left font-normal">Mnemonic / frase</th>
+                          <th className="px-4 py-3 text-left font-normal">Chave privada</th>
                           <th className="px-4 py-3 text-left font-normal">Endereço</th>
                           <th className="px-4 py-3 text-left font-normal">Saldo</th>
                           <th className="px-4 py-3" />
@@ -814,11 +842,20 @@ function HomePage() {
                             className="hover:bg-white/[0.02]"
                           >
                             <td className="px-4 py-3 text-orange-300">{wallet.network || "—"}</td>
+                            <td className="px-4 py-3 text-[10px] uppercase tracking-wide text-slate-500">
+                              {isBrainwallet(wallet) ? "Brainwallet" : "BIP39"}
+                            </td>
                             <td
-                              className="max-w-[190px] truncate px-4 py-3 text-slate-300"
+                              className="max-w-[210px] whitespace-normal break-words px-4 py-3 text-slate-300"
                               title={wallet.mnemonic}
                             >
-                              {wallet.mnemonic || "—"}
+                              {displayMnemonic(wallet) || "—"}
+                            </td>
+                            <td
+                              className="max-w-[190px] break-all px-4 py-3 text-violet-300"
+                              title={wallet.private_key ?? undefined}
+                            >
+                              {wallet.private_key || "—"}
                             </td>
                             <td
                               className="max-w-[190px] truncate px-4 py-3 text-slate-500"
@@ -832,10 +869,10 @@ function HomePage() {
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
-                                onClick={() => void copy(wallet.mnemonic)}
+                                onClick={() => void copy(walletCopyValue(wallet))}
                                 className="rounded border border-white/10 px-2 py-1 text-slate-500 hover:border-cyan-400/25 hover:text-cyan-300"
                               >
-                                {copied === wallet.mnemonic ? "Copiado" : "Copiar"}
+                                {copied === walletCopyValue(wallet) ? "Copiado" : "Copiar segredo"}
                               </button>
                             </td>
                           </tr>
