@@ -79,6 +79,7 @@ function HomePage() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [selectedCoin, setSelectedCoin] = useState<Coin>("BTC");
   const [networkAction, setNetworkAction] = useState<Coin | null>(null);
+  const [walletsOpen, setWalletsOpen] = useState(false);
 
   const prevStatusRef = useRef<Status | null>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
@@ -356,6 +357,23 @@ function HomePage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setWalletsOpen(true);
+                setWalletsPage(1);
+                void fetchWallets(1);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-xs text-cyan-300 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+            >
+              <span aria-hidden="true">▣</span>
+              Carteiras
+              {walletsTotal > 0 && (
+                <span className="rounded-full bg-cyan-400/15 px-1.5 py-0.5 text-[10px] text-cyan-200">
+                  {fmt(walletsTotal)}
+                </span>
+              )}
+            </button>
             <button
               type="button"
               onClick={toggleSound}
@@ -685,6 +703,161 @@ function HomePage() {
           178.95.25.53:3000
         </p>
       </main>
+
+      {walletsOpen && (
+        <div
+          className="fixed inset-0 z-30 flex items-start justify-center overflow-y-auto bg-black/75 px-4 py-8 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setWalletsOpen(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="wallets-dialog-title"
+            className="w-full max-w-5xl overflow-hidden rounded-2xl border border-cyan-400/15 bg-[#0d1017] shadow-2xl shadow-black/50"
+          >
+            <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-4">
+              <div>
+                <p
+                  id="wallets-dialog-title"
+                  className="text-sm font-semibold tracking-wide text-white"
+                >
+                  Carteiras já encontradas
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Registros recebidos da API em <code className="text-cyan-400/70">GET /found</code>
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void fetchWallets(1)}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:border-cyan-400/30 hover:text-cyan-300"
+                >
+                  Atualizar
+                </button>
+                <button
+                  type="button"
+                  aria-label="Fechar carteiras encontradas"
+                  onClick={() => setWalletsOpen(false)}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-lg leading-none text-slate-500 transition-colors hover:border-white/20 hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 p-5 lg:grid-cols-[1fr_280px]">
+              <div className="overflow-hidden rounded-xl border border-white/[0.07]">
+                <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+                  <span className="text-xs uppercase tracking-widest text-slate-500">
+                    Resultados confirmados
+                  </span>
+                  <span className="text-xs text-emerald-400">{fmt(walletsTotal)} registro(s)</span>
+                </div>
+                {loadingWallets ? (
+                  <div className="py-12 text-center text-xs text-slate-600">carregando...</div>
+                ) : wallets.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-slate-600">
+                    Nenhuma carteira retornada pela API.
+                  </div>
+                ) : (
+                  <div className="max-h-[55vh] overflow-auto">
+                    <table className="w-full min-w-[650px] text-xs">
+                      <thead className="sticky top-0 bg-[#111620] text-slate-600">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-normal">Rede</th>
+                          <th className="px-4 py-3 text-left font-normal">Mnemonic</th>
+                          <th className="px-4 py-3 text-left font-normal">Endereço</th>
+                          <th className="px-4 py-3 text-left font-normal">Saldo</th>
+                          <th className="px-4 py-3" />
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.04]">
+                        {wallets.map((wallet, index) => (
+                          <tr
+                            key={`${wallet.address}-${wallet.mnemonic}-${index}`}
+                            className="hover:bg-white/[0.02]"
+                          >
+                            <td className="px-4 py-3 text-orange-300">{wallet.network || "—"}</td>
+                            <td
+                              className="max-w-[190px] truncate px-4 py-3 text-slate-300"
+                              title={wallet.mnemonic}
+                            >
+                              {wallet.mnemonic || "—"}
+                            </td>
+                            <td
+                              className="max-w-[190px] truncate px-4 py-3 text-slate-500"
+                              title={wallet.address}
+                            >
+                              {wallet.address || "—"}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-emerald-400">
+                              {formatBalance(wallet.balance, wallet.network || selectedCoin)}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <button
+                                type="button"
+                                onClick={() => void copy(wallet.mnemonic)}
+                                className="rounded border border-white/10 px-2 py-1 text-slate-500 hover:border-cyan-400/25 hover:text-cyan-300"
+                              >
+                                {copied === wallet.mnemonic ? "Copiado" : "Copiar"}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <aside className="space-y-3">
+                <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+                  <p className="mb-3 text-[10px] uppercase tracking-widest text-slate-600">
+                    Estratégia observada
+                  </p>
+                  <p className="text-xs leading-5 text-slate-400">
+                    O motor gera e verifica candidatos, aplica o filtro Bloom e consulta APIs de
+                    blockchain. Este menu apenas exibe os achados persistidos pelo backend; não cria
+                    nem altera carteiras.
+                  </p>
+                </div>
+                <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+                  <p className="mb-3 text-[10px] uppercase tracking-widest text-slate-600">
+                    Estado do motor
+                  </p>
+                  <div className="space-y-2 text-xs">
+                    <StatRow
+                      label="Status"
+                      value={status?.running ? "Executando" : "Parado"}
+                      valueClass={status?.running ? "text-emerald-400" : "text-slate-400"}
+                    />
+                    <StatRow
+                      label="Rede"
+                      value={status?.network ?? "—"}
+                      valueClass="text-orange-300"
+                    />
+                    <StatRow label="Processados" value={fmt(status?.total)} />
+                    <StatRow label="Bloom hits" value={fmt(status?.bloom_hits)} />
+                    <StatRow
+                      label="Confirmadas"
+                      value={fmt(status?.confirmed)}
+                      valueClass="text-emerald-400"
+                    />
+                  </div>
+                </div>
+                <p className="px-1 text-[10px] leading-4 text-slate-700">
+                  Os detalhes refletem somente as respostas reais da API. Mnemonics são dados
+                  sensíveis: copie apenas quando necessário.
+                </p>
+              </aside>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
