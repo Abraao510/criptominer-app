@@ -29,7 +29,7 @@ type FoundWallet = {
 };
 
 type LogEntry = {
-  id: number;
+  id: string;
   ts: string;
   kind: "info" | "hit" | "confirm" | "warn" | "error" | "start" | "stop";
   text: string;
@@ -54,7 +54,8 @@ function now() {
 
 let _logId = 0;
 function mkLog(kind: LogEntry["kind"], text: string): LogEntry {
-  return { id: ++_logId, ts: now(), kind, text };
+  const uniqueId = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${++_logId}`;
+  return { id: uniqueId, ts: now(), kind, text };
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
