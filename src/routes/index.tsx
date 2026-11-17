@@ -316,10 +316,10 @@ function HomePage() {
     if (networkAction || coin === selectedCoin) return;
     setNetworkAction(coin);
     try {
-      const res = await fetch("/api/set_network", {
+      const res = await fetch("/api/network", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mode: coin }),
+        body: JSON.stringify({ network: coin }),
       });
       if (res.ok) {
         setSelectedCoin(coin);

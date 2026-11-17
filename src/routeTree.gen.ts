@@ -14,6 +14,7 @@ import { Route as ApiCandidatesRouteImport } from './routes/api/candidates'
 import { Route as ApiEventsRouteImport } from './routes/api/events'
 import { Route as ApiFoundRouteImport } from './routes/api/found'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiNetworkRouteImport } from './routes/api/network'
 import { Route as ApiResetRouteImport } from './routes/api/reset'
 import { Route as ApiSet_networkRouteImport } from './routes/api/set_network'
 import { Route as ApiStartRouteImport } from './routes/api/start'
@@ -44,6 +45,11 @@ const ApiFoundRoute = ApiFoundRouteImport.update({
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiNetworkRoute = ApiNetworkRouteImport.update({
+  id: '/api/network',
+  path: '/api/network',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiResetRoute = ApiResetRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/api/events': typeof ApiEventsRoute
   '/api/found': typeof ApiFoundRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/network': typeof ApiNetworkRoute
   '/api/reset': typeof ApiResetRoute
   '/api/set_network': typeof ApiSet_networkRoute
   '/api/start': typeof ApiStartRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/api/events': typeof ApiEventsRoute
   '/api/found': typeof ApiFoundRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/network': typeof ApiNetworkRoute
   '/api/reset': typeof ApiResetRoute
   '/api/set_network': typeof ApiSet_networkRoute
   '/api/start': typeof ApiStartRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/api/events': typeof ApiEventsRoute
   '/api/found': typeof ApiFoundRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/network': typeof ApiNetworkRoute
   '/api/reset': typeof ApiResetRoute
   '/api/set_network': typeof ApiSet_networkRoute
   '/api/start': typeof ApiStartRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/api/events'
     | '/api/found'
     | '/api/health'
+    | '/api/network'
     | '/api/reset'
     | '/api/set_network'
     | '/api/start'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/api/events'
     | '/api/found'
     | '/api/health'
+    | '/api/network'
     | '/api/reset'
     | '/api/set_network'
     | '/api/start'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/api/events'
     | '/api/found'
     | '/api/health'
+    | '/api/network'
     | '/api/reset'
     | '/api/set_network'
     | '/api/start'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   ApiEventsRoute: typeof ApiEventsRoute
   ApiFoundRoute: typeof ApiFoundRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiNetworkRoute: typeof ApiNetworkRoute
   ApiResetRoute: typeof ApiResetRoute
   ApiSet_networkRoute: typeof ApiSet_networkRoute
   ApiStartRoute: typeof ApiStartRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/network': {
+      id: '/api/network'
+      path: '/api/network'
+      fullPath: '/api/network'
+      preLoaderRoute: typeof ApiNetworkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/reset': {
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiEventsRoute: ApiEventsRoute,
   ApiFoundRoute: ApiFoundRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiNetworkRoute: ApiNetworkRoute,
   ApiResetRoute: ApiResetRoute,
   ApiSet_networkRoute: ApiSet_networkRoute,
   ApiStartRoute: ApiStartRoute,
