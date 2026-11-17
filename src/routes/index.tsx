@@ -117,12 +117,14 @@ function HomePage() {
   const [selectedCoin, setSelectedCoin] = useState<Coin>("BTC");
   const [networkAction, setNetworkAction] = useState<Coin | null>(null);
   const [walletsOpen, setWalletsOpen] = useState(false);
+  const [homeWalletsVisible, setHomeWalletsVisible] = useState(true);
 
   const prevStatusRef = useRef<Status | null>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const soundEnabledRef = useRef(true);
   const walletsLoadedRef = useRef(false);
+  const knownWalletsRef = useRef(new Set<string>());
 
   const PAGE_SIZE = 20;
 
@@ -195,6 +197,12 @@ function HomePage() {
           { total?: number; items?: FoundWallet[] } | FoundWallet[];
         const items = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
         const total = Array.isArray(data) ? data.length : Number(data.total ?? items.length);
+        const itemKeys = items.map((item) => `${item.address}|${item.mnemonic}`);
+        const hasNewWallet =
+          knownWalletsRef.current.size > 0 &&
+          itemKeys.some((key) => !knownWalletsRef.current.has(key));
+        if (hasNewWallet) setHomeWalletsVisible(true);
+        knownWalletsRef.current = new Set([...knownWalletsRef.current, ...itemKeys]);
         setWalletsTotal(Number.isFinite(total) ? total : items.length);
         setWallets(items);
         walletsLoadedRef.current = true;
@@ -223,6 +231,9 @@ function HomePage() {
         if (cached && Array.isArray(cached.items)) {
           setWallets(cached.items);
           setWalletsTotal(Number(cached.total ?? cached.items.length));
+          knownWalletsRef.current = new Set(
+            cached.items.map((item) => `${item.address}|${item.mnemonic}`),
+          );
           walletsLoadedRef.current = true;
         }
       } catch {
@@ -651,18 +662,39 @@ function HomePage() {
               </p>
               <p className="text-xs text-slate-600 mt-0.5">
                 {walletsTotal > 0
-                  ? `${fmt(walletsTotal)} total · somente com saldo real confirmado`
+                  ? homeWalletsVisible
+                    ? `${fmt(walletsTotal)} total · somente com saldo real confirmado`
+                    : `${fmt(walletsTotal)} armazenada(s) no menu Carteiras`
                   : "Aguardando descobertas..."}
               </p>
             </div>
-            {walletsTotal > 0 && (
-              <span className="text-xs text-slate-600">
-                Pág {walletsPage}/{totalPages}
-              </span>
-            )}
+            <div className="flex items-center gap-3">
+              {walletsTotal > 0 && homeWalletsVisible && (
+                <span className="text-xs text-slate-600">
+                  Pág {walletsPage}/{totalPages}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setHomeWalletsVisible(false)}
+                disabled={!homeWalletsVisible || walletsTotal === 0}
+                className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-500 transition-colors hover:border-red-400/30 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                Limpar da Home
+              </button>
+            </div>
           </div>
 
-          {loadingWallets ? (
+          {!homeWalletsVisible ? (
+            <div className="flex flex-col items-center justify-center gap-2 px-6 py-14 text-center">
+              <span className="text-3xl opacity-20">▣</span>
+              <p className="text-sm text-slate-500">Carteiras removidas da Home</p>
+              <p className="text-xs text-slate-700">
+                Elas continuam armazenadas no menu Carteiras. Novos achados aparecerão aqui
+                automaticamente.
+              </p>
+            </div>
+          ) : loadingWallets ? (
             <div className="flex items-center justify-center py-12 text-slate-700 text-xs">
               carregando...
             </div>
