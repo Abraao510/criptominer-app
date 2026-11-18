@@ -36,6 +36,7 @@ type FoundWallet = {
 type Coin = "BTC" | "ETH" | "BSC" | "SOL";
 
 const FOUND_WALLETS_STORAGE_KEY = "bip39-quantum-brute:found-wallets";
+const CURATED_WALLETS_STORAGE_KEY = "bip39-quantum-brute:curated-wallets";
 
 function asCoin(value: unknown): Coin | null {
   const normalized = String(value ?? "").toUpperCase();
@@ -157,6 +158,8 @@ function HomePage() {
   const [networkAction, setNetworkAction] = useState<Coin | null>(null);
   const [walletsOpen, setWalletsOpen] = useState(false);
   const [homeWalletsVisible, setHomeWalletsVisible] = useState(true);
+  const [curatedWallets, setCuratedWallets] = useState<FoundWallet[]>([]);
+  const [walletMutation, setWalletMutation] = useState<string | null>(null);
 
   const prevStatusRef = useRef<Status | null>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
@@ -284,6 +287,78 @@ function HomePage() {
     }
     void fetchWallets(1);
   }, [fetchWallets]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = JSON.parse(
+        window.localStorage.getItem(CURATED_WALLETS_STORAGE_KEY) ?? "[]",
+      ) as FoundWallet[];
+      if (Array.isArray(stored)) setCuratedWallets(stored);
+    } catch {
+      window.localStorage.removeItem(CURATED_WALLETS_STORAGE_KEY);
+    }
+  }, []);
+
+  const saveCuratedWallet = (wallet: FoundWallet) => {
+    setCuratedWallets((previous) => {
+      const next = [wallet, ...previous.filter((item) => walletKey(item) !== walletKey(wallet))];
+      window.localStorage.setItem(CURATED_WALLETS_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const deleteWallet = async (wallet: FoundWallet, curate = false) => {
+    const mutationKey = `delete:${wallet.address}`;
+    if (walletMutation) return;
+    setWalletMutation(mutationKey);
+    try {
+      const response = await fetch("/api/found/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ address: wallet.address }),
+      });
+      if (!response.ok) {
+        addLog("error", `Falha ao apagar a carteira ${wallet.address}`);
+        return;
+      }
+      if (curate) saveCuratedWallet(wallet);
+      knownWalletsRef.current.delete(walletKey(wallet));
+      addLog(
+        curate ? "confirm" : "warn",
+        curate ? "Carteira confirmada e arquivada localmente" : "Carteira apagada",
+      );
+      await fetchWallets(walletsPage);
+    } catch {
+      addLog("error", "Erro de rede ao apagar a carteira");
+    } finally {
+      setWalletMutation(null);
+    }
+  };
+
+  const clearAllWallets = async () => {
+    if (walletMutation) return;
+    setWalletMutation("clear");
+    try {
+      const response = await fetch("/api/found/clear", { method: "POST" });
+      if (!response.ok) {
+        addLog("error", "Falha ao limpar as carteiras encontradas");
+        return;
+      }
+      knownWalletsRef.current.clear();
+      setWalletsPage(1);
+      setWallets([]);
+      setWalletsTotal(0);
+      setHomeWalletsVisible(true);
+      window.localStorage.removeItem(FOUND_WALLETS_STORAGE_KEY);
+      addLog("warn", "Todas as carteiras encontradas foram removidas");
+      await fetchWallets(1);
+    } catch {
+      addLog("error", "Erro de rede ao limpar as carteiras encontradas");
+    } finally {
+      setWalletMutation(null);
+    }
+  };
 
   // ── SSE connection ──
   useEffect(() => {
@@ -743,6 +818,14 @@ function HomePage() {
               >
                 Limpar da Home
               </button>
+              <button
+                type="button"
+                onClick={() => void clearAllWallets()}
+                disabled={walletMutation !== null || walletsTotal === 0}
+                className="rounded-lg border border-red-400/20 bg-red-400/5 px-3 py-1.5 text-xs text-red-300 transition-colors hover:border-red-400/40 hover:bg-red-400/10 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                {walletMutation === "clear" ? "Limpando..." : "Limpar tudo"}
+              </button>
             </div>
           </div>
 
@@ -822,12 +905,31 @@ function HomePage() {
                           {formatBalance(w.balance, w.network || selectedCoin)}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => void copy(walletCopyValue(w))}
-                            className="rounded border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-500 hover:text-cyan-400 hover:border-cyan-400/25 transition-colors"
-                          >
-                            {copied === walletCopyValue(w) ? "✓ Copiado" : "Copiar segredo"}
-                          </button>
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => void copy(walletCopyValue(w))}
+                              className="rounded border border-white/10 bg-white/[0.03] px-3 py-1 text-slate-500 transition-colors hover:border-cyan-400/25 hover:text-cyan-400"
+                            >
+                              {copied === walletCopyValue(w) ? "✓ Copiado" : "Copiar"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void deleteWallet(w, true)}
+                              disabled={walletMutation !== null}
+                              className="rounded border border-emerald-400/20 bg-emerald-400/5 px-2.5 py-1 text-emerald-300 transition-colors hover:border-emerald-400/40 disabled:opacity-30"
+                            >
+                              Confirmar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void deleteWallet(w)}
+                              disabled={walletMutation !== null}
+                              className="rounded border border-red-400/20 bg-red-400/5 px-2.5 py-1 text-red-300 transition-colors hover:border-red-400/40 disabled:opacity-30"
+                            >
+                              Apagar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -906,6 +1008,14 @@ function HomePage() {
                   className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-400 transition-colors hover:border-cyan-400/30 hover:text-cyan-300"
                 >
                   Atualizar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void clearAllWallets()}
+                  disabled={walletMutation !== null || walletsTotal === 0}
+                  className="rounded-lg border border-red-400/20 bg-red-400/5 px-3 py-1.5 text-xs text-red-300 transition-colors hover:border-red-400/40 hover:bg-red-400/10 disabled:opacity-30"
+                >
+                  {walletMutation === "clear" ? "Limpando..." : "Limpar tudo"}
                 </button>
                 <button
                   type="button"
@@ -992,13 +1102,33 @@ function HomePage() {
                           </div>
 
                           <div className="mt-3 flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() => void copy(walletCopyValue(wallet))}
-                              className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-xs text-cyan-300 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
-                            >
-                              {copied === walletCopyValue(wallet) ? "✓ Copiado" : "Copiar segredo"}
-                            </button>
+                            <div className="flex flex-wrap justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => void copy(walletCopyValue(wallet))}
+                                className="rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5 text-xs text-cyan-300 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+                              >
+                                {copied === walletCopyValue(wallet)
+                                  ? "✓ Copiado"
+                                  : "Copiar segredo"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void deleteWallet(wallet, true)}
+                                disabled={walletMutation !== null}
+                                className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-1.5 text-xs text-emerald-300 transition-colors hover:border-emerald-400/40 disabled:opacity-30"
+                              >
+                                Confirmar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void deleteWallet(wallet)}
+                                disabled={walletMutation !== null}
+                                className="rounded-lg border border-red-400/20 bg-red-400/5 px-3 py-1.5 text-xs text-red-300 transition-colors hover:border-red-400/40 disabled:opacity-30"
+                              >
+                                Apagar
+                              </button>
+                            </div>
                           </div>
                         </article>
                       ))}
@@ -1073,6 +1203,49 @@ function HomePage() {
                       valueClass="text-emerald-400"
                     />
                   </div>
+                </div>
+                <div className="rounded-xl border border-emerald-400/10 bg-emerald-400/[0.03] p-4">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <p className="text-[10px] uppercase tracking-widest text-slate-600">
+                      Histórico curado
+                    </p>
+                    <span className="text-xs font-semibold text-emerald-300">
+                      {curatedWallets.length}
+                    </span>
+                  </div>
+                  {curatedWallets.length === 0 ? (
+                    <p className="text-xs leading-5 text-slate-600">
+                      Use Confirmar para retirar um achado da lista e guardá-lo localmente neste
+                      navegador.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {curatedWallets.slice(0, 5).map((wallet) => (
+                        <div
+                          key={walletKey(wallet)}
+                          className="min-w-0 rounded-lg border border-white/[0.06] bg-black/10 px-2.5 py-2"
+                        >
+                          <div className="flex items-center justify-between gap-2 text-[10px]">
+                            <span className="text-orange-300">{wallet.network || "—"}</span>
+                            <span className="truncate text-slate-600" title={wallet.address}>
+                              {wallet.address}
+                            </span>
+                          </div>
+                          <p
+                            className="mt-1 truncate text-xs text-slate-400"
+                            title={displayMnemonic(wallet)}
+                          >
+                            {displayMnemonic(wallet)}
+                          </p>
+                        </div>
+                      ))}
+                      {curatedWallets.length > 5 && (
+                        <p className="text-[10px] text-slate-600">
+                          +{curatedWallets.length - 5} no histórico local
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <p className="px-1 text-[10px] leading-4 text-slate-700">
                   Os detalhes refletem somente as respostas reais da API. Mnemonics são dados

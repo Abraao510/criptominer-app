@@ -21,6 +21,8 @@ import { Route as ApiStartRouteImport } from './routes/api/start'
 import { Route as ApiStatusRouteImport } from './routes/api/status'
 import { Route as ApiStopRouteImport } from './routes/api/stop'
 import { Route as ApiUnverifiedRouteImport } from './routes/api/unverified'
+import { Route as ApiFoundClearRouteImport } from './routes/api/found/clear'
+import { Route as ApiFoundDeleteRouteImport } from './routes/api/found/delete'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -82,12 +84,22 @@ const ApiUnverifiedRoute = ApiUnverifiedRouteImport.update({
   path: '/api/unverified',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFoundClearRoute = ApiFoundClearRouteImport.update({
+  id: '/clear',
+  path: '/clear',
+  getParentRoute: () => ApiFoundRoute,
+} as any)
+const ApiFoundDeleteRoute = ApiFoundDeleteRouteImport.update({
+  id: '/delete',
+  path: '/delete',
+  getParentRoute: () => ApiFoundRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/candidates': typeof ApiCandidatesRoute
   '/api/events': typeof ApiEventsRoute
-  '/api/found': typeof ApiFoundRoute
+  '/api/found': typeof ApiFoundRouteWithChildren
   '/api/health': typeof ApiHealthRoute
   '/api/network': typeof ApiNetworkRoute
   '/api/reset': typeof ApiResetRoute
@@ -96,12 +108,14 @@ export interface FileRoutesByFullPath {
   '/api/status': typeof ApiStatusRoute
   '/api/stop': typeof ApiStopRoute
   '/api/unverified': typeof ApiUnverifiedRoute
+  '/api/found/clear': typeof ApiFoundClearRoute
+  '/api/found/delete': typeof ApiFoundDeleteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/candidates': typeof ApiCandidatesRoute
   '/api/events': typeof ApiEventsRoute
-  '/api/found': typeof ApiFoundRoute
+  '/api/found': typeof ApiFoundRouteWithChildren
   '/api/health': typeof ApiHealthRoute
   '/api/network': typeof ApiNetworkRoute
   '/api/reset': typeof ApiResetRoute
@@ -110,13 +124,15 @@ export interface FileRoutesByTo {
   '/api/status': typeof ApiStatusRoute
   '/api/stop': typeof ApiStopRoute
   '/api/unverified': typeof ApiUnverifiedRoute
+  '/api/found/clear': typeof ApiFoundClearRoute
+  '/api/found/delete': typeof ApiFoundDeleteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/candidates': typeof ApiCandidatesRoute
   '/api/events': typeof ApiEventsRoute
-  '/api/found': typeof ApiFoundRoute
+  '/api/found': typeof ApiFoundRouteWithChildren
   '/api/health': typeof ApiHealthRoute
   '/api/network': typeof ApiNetworkRoute
   '/api/reset': typeof ApiResetRoute
@@ -125,6 +141,8 @@ export interface FileRoutesById {
   '/api/status': typeof ApiStatusRoute
   '/api/stop': typeof ApiStopRoute
   '/api/unverified': typeof ApiUnverifiedRoute
+  '/api/found/clear': typeof ApiFoundClearRoute
+  '/api/found/delete': typeof ApiFoundDeleteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +159,8 @@ export interface FileRouteTypes {
     | '/api/status'
     | '/api/stop'
     | '/api/unverified'
+    | '/api/found/clear'
+    | '/api/found/delete'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +175,8 @@ export interface FileRouteTypes {
     | '/api/status'
     | '/api/stop'
     | '/api/unverified'
+    | '/api/found/clear'
+    | '/api/found/delete'
   id:
     | '__root__'
     | '/'
@@ -169,13 +191,15 @@ export interface FileRouteTypes {
     | '/api/status'
     | '/api/stop'
     | '/api/unverified'
+    | '/api/found/clear'
+    | '/api/found/delete'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiCandidatesRoute: typeof ApiCandidatesRoute
   ApiEventsRoute: typeof ApiEventsRoute
-  ApiFoundRoute: typeof ApiFoundRoute
+  ApiFoundRoute: typeof ApiFoundRouteWithChildren
   ApiHealthRoute: typeof ApiHealthRoute
   ApiNetworkRoute: typeof ApiNetworkRoute
   ApiResetRoute: typeof ApiResetRoute
@@ -272,14 +296,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUnverifiedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/found/clear': {
+      id: '/api/found/clear'
+      path: '/clear'
+      fullPath: '/api/found/clear'
+      preLoaderRoute: typeof ApiFoundClearRouteImport
+      parentRoute: typeof ApiFoundRoute
+    }
+    '/api/found/delete': {
+      id: '/api/found/delete'
+      path: '/delete'
+      fullPath: '/api/found/delete'
+      preLoaderRoute: typeof ApiFoundDeleteRouteImport
+      parentRoute: typeof ApiFoundRoute
+    }
   }
 }
+
+interface ApiFoundRouteChildren {
+  ApiFoundClearRoute: typeof ApiFoundClearRoute
+  ApiFoundDeleteRoute: typeof ApiFoundDeleteRoute
+}
+
+const ApiFoundRouteChildren: ApiFoundRouteChildren = {
+  ApiFoundClearRoute: ApiFoundClearRoute,
+  ApiFoundDeleteRoute: ApiFoundDeleteRoute,
+}
+
+const ApiFoundRouteWithChildren = ApiFoundRoute._addFileChildren(
+  ApiFoundRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiCandidatesRoute: ApiCandidatesRoute,
   ApiEventsRoute: ApiEventsRoute,
-  ApiFoundRoute: ApiFoundRoute,
+  ApiFoundRoute: ApiFoundRouteWithChildren,
   ApiHealthRoute: ApiHealthRoute,
   ApiNetworkRoute: ApiNetworkRoute,
   ApiResetRoute: ApiResetRoute,
