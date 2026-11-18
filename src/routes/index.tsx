@@ -33,7 +33,7 @@ type FoundWallet = {
   created_at?: string | number | null;
 };
 
-type Coin = "BTC" | "ETH" | "BSC" | "SOL";
+type Coin = "BTC" | "ETH" | "BSC" | "SOL" | "ALL";
 
 const FOUND_WALLETS_STORAGE_KEY = "bip39-quantum-brute:found-wallets";
 const CURATED_WALLETS_STORAGE_KEY = "bip39-quantum-brute:curated-wallets";
@@ -43,7 +43,8 @@ function asCoin(value: unknown): Coin | null {
   return normalized === "BTC" ||
     normalized === "ETH" ||
     normalized === "BSC" ||
-    normalized === "SOL"
+    normalized === "SOL" ||
+    normalized === "ALL"
     ? normalized
     : null;
 }
@@ -167,6 +168,7 @@ function HomePage() {
   const soundEnabledRef = useRef(true);
   const walletsLoadedRef = useRef(false);
   const knownWalletsRef = useRef(new Set<string>());
+  const knownPositiveWalletsRef = useRef(new Set<string>());
 
   const PAGE_SIZE = 50;
 
@@ -230,44 +232,56 @@ function HomePage() {
   }, [logs]);
 
   // ── fetch found wallets ──
-  const fetchWallets = useCallback(async (page: number): Promise<FoundWallet[]> => {
-    if (!walletsLoadedRef.current) setLoadingWallets(true);
-    try {
-      const res = await fetch(`/api/found?page=${page}&limit=${PAGE_SIZE}`);
-      if (res.ok) {
-        const data = (await res.json()) as
-          { total?: number; items?: FoundWallet[] } | FoundWallet[];
-        const items = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
-        const total = Array.isArray(data) ? data.length : Number(data.total ?? items.length);
-        const itemKeys = items.map(walletKey);
-        const hasNewWallet =
-          knownWalletsRef.current.size > 0 &&
-          itemKeys.some((key) => !knownWalletsRef.current.has(key));
-        const newItems = items.filter((item) => !knownWalletsRef.current.has(walletKey(item)));
-        if (hasNewWallet) setHomeWalletsVisible(true);
-        knownWalletsRef.current = new Set([...knownWalletsRef.current, ...itemKeys]);
-        const existingItems = items.filter((item) => !newItems.includes(item));
-        const orderedItems = hasNewWallet
-          ? [...newItems.reverse(), ...existingItems.reverse()]
-          : sortWalletsNewest(items);
-        setWalletsTotal(Number.isFinite(total) ? total : items.length);
-        setWallets(orderedItems);
-        walletsLoadedRef.current = true;
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(
-            FOUND_WALLETS_STORAGE_KEY,
-            JSON.stringify({ savedAt: new Date().toISOString(), total, items: orderedItems }),
+  const fetchWallets = useCallback(
+    async (page: number): Promise<FoundWallet[]> => {
+      if (!walletsLoadedRef.current) setLoadingWallets(true);
+      try {
+        const res = await fetch(`/api/found?page=${page}&limit=${PAGE_SIZE}`);
+        if (res.ok) {
+          const data = (await res.json()) as
+            { total?: number; items?: FoundWallet[] } | FoundWallet[];
+          const items = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
+          const total = Array.isArray(data) ? data.length : Number(data.total ?? items.length);
+          const hadLoadedWallets = walletsLoadedRef.current;
+          const newPositiveWallet = items.some(
+            (item) =>
+              Number(item.balance) > 0 && !knownPositiveWalletsRef.current.has(walletKey(item)),
           );
+          const itemKeys = items.map(walletKey);
+          const hasNewWallet =
+            knownWalletsRef.current.size > 0 &&
+            itemKeys.some((key) => !knownWalletsRef.current.has(key));
+          const newItems = items.filter((item) => !knownWalletsRef.current.has(walletKey(item)));
+          if (hasNewWallet) setHomeWalletsVisible(true);
+          knownWalletsRef.current = new Set([...knownWalletsRef.current, ...itemKeys]);
+          for (const item of items) {
+            if (Number(item.balance) > 0) knownPositiveWalletsRef.current.add(walletKey(item));
+          }
+          const existingItems = items.filter((item) => !newItems.includes(item));
+          const orderedItems = hasNewWallet
+            ? [...newItems.reverse(), ...existingItems.reverse()]
+            : sortWalletsNewest(items);
+          setWalletsTotal(Number.isFinite(total) ? total : items.length);
+          setWallets(orderedItems);
+          walletsLoadedRef.current = true;
+          if (typeof window !== "undefined") {
+            window.localStorage.setItem(
+              FOUND_WALLETS_STORAGE_KEY,
+              JSON.stringify({ savedAt: new Date().toISOString(), total, items: orderedItems }),
+            );
+          }
+          setLoadingWallets(false);
+          if (hadLoadedWallets && newPositiveWallet) playPositiveBalanceAlert();
+          return orderedItems;
         }
-        setLoadingWallets(false);
-        return orderedItems;
+      } catch {
+        // A API pode estar temporariamente indisponível; novas ações tentarão novamente.
       }
-    } catch {
-      // A API pode estar temporariamente indisponível; novas ações tentarão novamente.
-    }
-    setLoadingWallets(false);
-    return [];
-  }, []);
+      setLoadingWallets(false);
+      return [];
+    },
+    [playPositiveBalanceAlert],
+  );
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -279,6 +293,9 @@ function HomePage() {
           setWallets(cached.items);
           setWalletsTotal(Number(cached.total ?? cached.items.length));
           knownWalletsRef.current = new Set(cached.items.map(walletKey));
+          knownPositiveWalletsRef.current = new Set(
+            cached.items.filter((item) => Number(item.balance) > 0).map(walletKey),
+          );
           walletsLoadedRef.current = true;
         }
       } catch {
@@ -346,6 +363,7 @@ function HomePage() {
         return;
       }
       knownWalletsRef.current.clear();
+      knownPositiveWalletsRef.current.clear();
       setWalletsPage(1);
       setWallets([]);
       setWalletsTotal(0);
@@ -359,6 +377,33 @@ function HomePage() {
       setWalletMutation(null);
     }
   };
+
+  useEffect(() => {
+    void fetch("/api/network")
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const text = await response.text();
+        try {
+          return JSON.parse(text) as unknown;
+        } catch {
+          return text;
+        }
+      })
+      .then((payload: unknown) => {
+        const value =
+          typeof payload === "string"
+            ? payload
+            : payload && typeof payload === "object"
+              ? ((payload as { network?: unknown; active_network?: unknown; mode?: unknown })
+                  .network ??
+                (payload as { active_network?: unknown }).active_network ??
+                (payload as { mode?: unknown }).mode)
+              : null;
+        const coin = asCoin(value);
+        if (coin) setSelectedCoin(coin);
+      })
+      .catch(() => undefined);
+  }, []);
 
   // ── SSE connection ──
   useEffect(() => {
@@ -417,12 +462,7 @@ function HomePage() {
                   "confirm",
                   `⚡ ${newConf} CARTEIRA${newConf > 1 ? "S" : ""} CONFIRMADA${newConf > 1 ? "S" : ""} COM SALDO!`,
                 );
-                void fetchWallets(1).then((latestWallets) => {
-                  const hasPositiveBalance = latestWallets.some(
-                    (wallet) => Number(wallet.balance) > 0,
-                  );
-                  if (hasPositiveBalance) playPositiveBalanceAlert();
-                });
+                void fetchWallets(1);
               }
 
               if (d.running && d.total > old.total) {
@@ -481,14 +521,16 @@ function HomePage() {
     if (networkAction || coin === selectedCoin) return;
     setNetworkAction(coin);
     try {
-      const res = await fetch("/api/network", {
+      const endpoint = coin === "ALL" ? "/api/set_network" : "/api/network";
+      const body = coin === "ALL" ? { mode: "ALL" } : { network: coin };
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ network: coin }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         setSelectedCoin(coin);
-        addLog("info", `Rede alterada para ${coin}`);
+        addLog("info", `Rede alterada para ${coin === "ALL" ? "TODAS" : coin}`);
         void fetchWallets(1);
       } else {
         addLog("error", `Falha ao selecionar a rede ${coin}`);
@@ -617,7 +659,7 @@ function HomePage() {
 
           <div className="flex items-center gap-2 flex-wrap">
             <span className="mr-1 text-[10px] uppercase tracking-widest text-slate-600">Rede</span>
-            {(["BTC", "ETH", "BSC", "SOL"] as const).map((coin) => (
+            {(["BTC", "ETH", "BSC", "SOL", "ALL"] as const).map((coin) => (
               <button
                 key={coin}
                 type="button"
@@ -631,7 +673,7 @@ function HomePage() {
                 }`}
               >
                 {networkAction === coin ? <Spinner /> : <CoinIcon coin={coin} />}
-                {coin}
+                {coin === "ALL" ? "TODAS" : coin}
               </button>
             ))}
             <button
@@ -1276,6 +1318,16 @@ function Spinner() {
 }
 
 function CoinIcon({ coin }: { coin: Coin }) {
+  if (coin === "ALL") {
+    return (
+      <span
+        className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-cyan-300/50 text-[9px] font-bold text-cyan-300"
+        aria-hidden="true"
+      >
+        ∞
+      </span>
+    );
+  }
   if (coin === "BTC") {
     return (
       <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
