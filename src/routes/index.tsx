@@ -426,7 +426,7 @@ function HomePage() {
         addLog("error", "SSE desconectado — reconectando em 5s...");
       };
 
-      src.addEventListener("status", (e: MessageEvent) => {
+      src.addEventListener("sentry", (e: MessageEvent) => { try { const ev = JSON.parse(e.data) as { network: string; stage: string; address: string; message: string }; const kindMap: Record<string, LogEntry["kind"]> = { alert: "warn", calculating: "warn", bingo: "confirm", failed: "error", manual: "hit" }; addLog(kindMap[ev.stage] ?? "info", `[${ev.network}] ${ev.message}`); } catch { /* ignore malformed sentry event */ } }); src.addEventListener("status", (e: MessageEvent) => {
         try {
           const d = JSON.parse(e.data) as Status;
           const activeCoin = asCoin(d.active_network ?? d.network);
