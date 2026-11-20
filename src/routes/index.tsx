@@ -714,13 +714,7 @@ function HomePage() {
             icon="🔍"
           />
           <MetricCard
-            label="Bloom filter hits"
-            value={fmt(status?.bloom_hits)}
-            color="text-violet-300"
-            icon="🎯"
-          />
-          <MetricCard
-            label="Checagens API"
+              label="K-Reuse Detectados" value={fmt((status?.sentry_btc_hits ?? 0) + (status?.sentry_eth_hits ?? 0))} color={(status?.sentry_btc_hits || status?.sentry_eth_hits) ? "text-yellow-300" : "text-violet-300"} icon="⚡" /><MetricCard label="Checagens API"
             value={fmt(status?.api_checks)}
             color="text-blue-300"
             icon="🌐"
