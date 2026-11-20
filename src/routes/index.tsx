@@ -464,10 +464,7 @@ function HomePage() {
                   "confirm",
                   `⚡ ${newConf} CARTEIRA${newConf > 1 ? "S" : ""} CONFIRMADA${newConf > 1 ? "S" : ""} COM SALDO!`,
                 );
-                void fetchWallets(1);
-              }
-
-              if (d.running && d.total > old.total) {
+                void fetchWallets(1); } const newBtcSentry = (d.sentry_btc_hits ?? 0) - (old.sentry_btc_hits ?? 0); if (newBtcSentry > 0) addLog("confirm", "⚡ K-REUSE DETECTADO (BTC)! possível chave recuperável"); const newEthSentry = (d.sentry_eth_hits ?? 0) - (old.sentry_eth_hits ?? 0); if (newEthSentry > 0) addLog("confirm", "⚡ K-REUSE DETECTADO (ETH)! possível chave recuperável"); if (d.running && d.total > old.total) {
                 const delta = d.total - old.total;
                 if (delta >= 10_000) {
                   addLog("info", `+${fmt(delta)} endereços processados (total: ${fmt(d.total)})`);
