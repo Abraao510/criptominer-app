@@ -804,10 +804,7 @@ function HomePage() {
                 <StatRow
                   label="Confirmados"
                   value={fmt(status?.confirmed)}
-                  valueClass="text-emerald-400"
-                  <StatRow label="K-Reuse BTC" value={fmt(status?.sentry_btc_hits)} valueClass={status?.sentry_btc_hits ? "text-yellow-400" : "text-slate-300"} />
-                <StatRow label="K-Reuse ETH" value={fmt(status?.sentry_eth_hits)} valueClass={status?.sentry_eth_hits ? "text-yellow-400" : "text-slate-300"} />
-                />
+                  valueClass="text-emerald-400" /><StatRow label="K-Reuse BTC" value={fmt(status?.sentry_btc_hits)} valueClass={status?.sentry_btc_hits ? "text-yellow-400" : "text-slate-300"} /><StatRow label="K-Reuse ETH" value={fmt(status?.sentry_eth_hits)} valueClass={status?.sentry_eth_hits ? "text-yellow-400" : "text-slate-300"} />
               </div>
             </div>
 
